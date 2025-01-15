@@ -1,0 +1,1 @@
+An osu!stable server implementation written in C#. This is my first (significant) C# project. Currently very barebones: only supports public/private channels, multiple online users, and basic score submission.
