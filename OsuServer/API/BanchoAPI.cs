@@ -136,12 +136,9 @@ namespace OsuServer.API
              * Information that is currently unused:
              * 1. Password (planned): User authentication (requires account system)
              * 2. Version (planned): Checking osu! version (disallow versions that are too old)
-             * 3. UtcOffset: Not entirely sure why the server needs to know this, possibly for the exact time of score 
-             * submission? That might be odd, though.
-             * 4. ShouldDisplayCity: I don't know if I will ever implement the geolocation feature (which I'm assuming 
+             * 3. ShouldDisplayCity: I don't know if I will ever implement the geolocation feature (which I'm assuming 
              * this is related to). I've never used it in-game.
-             * 5. DisallowPrivateMessages (planned): Private messages system
-             * 6. All of the weird hashes: I assume these are used to uniquely identify computers to assist with multi-
+             * 4. All of the weird hashes: I assume these are used to uniquely identify computers to assist with multi-
              * account prevention. I am not sure if I care to prevent that with this server, so I may never use these.
              */
 
@@ -370,9 +367,9 @@ namespace OsuServer.API
 
             return Results.Ok();
         }
-
-        // why
-        private byte[] DecryptRijndael256(byte[] encrypted, byte[] key, byte[] iv)
+        
+        // TODO: move this out
+        private byte[] DecryptRijndael256(byte[] encrypted, byte[] key, byte[] iv) // why
         {
             RijndaelEngine rijndael = new RijndaelEngine(256);
             CbcBlockCipher cbc = new CbcBlockCipher(rijndael);
