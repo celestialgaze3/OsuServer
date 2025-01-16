@@ -40,7 +40,7 @@ namespace OsuServer.API
                 $"approvedDate:{_beatmap.LastUpdated.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'-'zzz")}",
                 "\n",
                 $"chartId:beatmap",
-                $"chartUrl:https://{Program.Domain}/b/{_beatmap.Id}",
+                $"chartUrl:https://{ServerConfiguration.Domain}/b/{_beatmap.Id}",
                 $"chartName:Beatmap Ranking",
                 // TODO: these values are the updated map rank statistics. implement when you can track that
                 UpdatedValue("rank", 0, 0),
@@ -52,7 +52,7 @@ namespace OsuServer.API
                 $"onlineScoreId:{_bancho.GetScoreId(scoreChecksum)}",
                 "\n",
                 $"chartId:overall",
-                $"chartUrl:https://{Program.Domain}/u/{_player.Id}",
+                $"chartUrl:https://{ServerConfiguration.Domain}/u/{_player.Id}",
                 $"chartName:Overall Ranking",
                 UpdatedValue("rank", _oldStats.Rank, _newStats.Rank),
                 UpdatedValue("rankedScore", _oldStats.RankedScore, _newStats.RankedScore),
