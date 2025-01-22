@@ -113,11 +113,23 @@ namespace OsuServer.State
         /// <param name="score">The score this player set</param>
         public void UpdateWithScore(Score score)
         {
-            // TODO: update player state properly
+            // These stats are updated regardless of ranked status.
             Stats.Playcount += 1;
             Stats.TotalScore += score.TotalScore;
-            if (score.Passed) Stats.RankedScore += score.TotalScore;
-            Stats.Rank = score.Goods;
+
+            // These stats should only be incremented if the score is a pass (TODO: on a ranked map)
+            if (score.Passed)
+            {
+                Stats.RankedScore += score.TotalScore;
+
+                // Update player's maximum combo if the score's combo exceeds their previous
+                if (score.MaxCombo > Stats.MaxCombo)
+                {
+                    Stats.MaxCombo = score.MaxCombo;
+                }
+            }
+
+            // Calculate the player's new total pp
             Stats.PP = CalculatePerformancePoints();
         }
 

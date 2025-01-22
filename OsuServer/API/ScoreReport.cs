@@ -57,7 +57,7 @@ namespace OsuServer.API
                 UpdatedValue("rank", _oldStats.Rank, _newStats.Rank),
                 UpdatedValue("rankedScore", _oldStats.RankedScore, _newStats.RankedScore),
                 UpdatedValue("totalScore", _oldStats.TotalScore, _newStats.TotalScore),
-                UpdatedValue("maxCombo", 0, 0), // TODO: track max combo
+                UpdatedValue("maxCombo", _oldStats.MaxCombo, _newStats.MaxCombo),
                 UpdatedValue("accuracy", _oldStats.Accuracy, _newStats.Accuracy),
                 UpdatedValue("pp", _oldStats.PP, _newStats.PP),
                 $"achievements-new:" // TODO: achievements
