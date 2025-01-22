@@ -31,6 +31,8 @@ namespace OsuServer.State
 
         public DateTime LoginTime { get; private set; }
 
+        public List<int> ScoreIds { get; private set; }
+
         public Player(Connection connection, LoginData loginData)
         {
             Connection = connection;
@@ -51,6 +53,7 @@ namespace OsuServer.State
             BlockingStrangerMessages = loginData.DisallowPrivateMessages;
 
             LoginTime = DateTime.Now;
+            ScoreIds = new List<int>();
         }
 
         public void SendMessage(OsuMessage message)
@@ -96,6 +99,26 @@ namespace OsuServer.State
         public bool HasFriended(Player player)
         {
             return Friends.Contains(player.Id);
+        }
+
+        public int CalculatePerformancePoints()
+        {
+            // temporary
+            return ScoreIds.Count;
+        }
+
+        /// <summary>
+        /// Updates a player's stats based on a submitted score
+        /// </summary>
+        /// <param name="score">The score this player set</param>
+        public void UpdateWithScore(Score score)
+        {
+            // TODO: update player state properly
+            Stats.Playcount += 1;
+            Stats.TotalScore += score.TotalScore;
+            if (score.Passed) Stats.RankedScore += score.TotalScore;
+            Stats.Rank = score.Goods;
+            Stats.PP = CalculatePerformancePoints();
         }
 
     }

@@ -350,7 +350,7 @@ namespace OsuServer.API
              * uniquely identify a score. In this way, we can prevent duplicate submissions. */
 
             // Save old player stats
-            PlayerStats oldStats = player.Stats;
+            PlayerStats oldStats = player.Stats.Clone();
             
             // Update server state with this score
             Bancho.SubmitScore(player, scoreData.Score, scoreData.Checksum);

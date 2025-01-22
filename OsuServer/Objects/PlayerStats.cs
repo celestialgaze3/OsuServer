@@ -22,5 +22,10 @@ namespace OsuServer.Objects
             Rank = rank;
             PP = pp;
         }
+
+        public PlayerStats Clone()
+        {
+            return new PlayerStats(TotalScore, RankedScore, Accuracy, Playcount, Rank, PP);
+        }
     }
 }
