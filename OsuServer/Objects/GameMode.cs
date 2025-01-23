@@ -17,4 +17,12 @@
         CatchAutopilot = 10,
         ManiaAutopilot = 11
     }
+
+    static class GameModeExtensions {
+    
+        public static GameMode WithoutMods(this GameMode mode) {
+            return (GameMode)((int)mode % 4); 
+        }
+
+    }
 }

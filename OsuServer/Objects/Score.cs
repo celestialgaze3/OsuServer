@@ -1,4 +1,10 @@
-﻿namespace OsuServer.Objects
+﻿using OsuServer.State;
+using OsuServer.Util;
+using System.Reflection.Metadata;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace OsuServer.Objects
 {
     public class Score
     {
@@ -17,7 +23,6 @@
         public GameMode GameMode { get; private set; }
 
         // TODO: Possibly add Beatmap and Player reference?
-        // TODO: Add checksum calculator
 
         public Score(int perfects, int goods, int bads, int gekis, int katus, int misses, int totalScore, int maxCombo, bool perfectCombo,
             Grade grade, Mods mods, bool passed, GameMode gameMode)
@@ -40,6 +45,21 @@
         public float CalculateAccuracy()
         {
             return (float) (Perfects * 300 + Goods * 100 + Bads * 50) / ((Perfects + Goods + Bads + Misses) * 300);
+        }
+
+        public string CalculateChecksum(string beatmapMD5, string playerName, string osuVersion, string clientTime, string clientHash, string storyboardChecksum)
+        {
+            // Not sure why C# decides to put a billion null bytes at the end of this string. Thanks for the debugging nightmare
+            string prehash = $"chickenmcnuggets{Perfects + Goods}o15{Bads}{Gekis}smustard{Katus}{Misses}uu{beatmapMD5}" +
+                $"{MaxCombo}{PerfectCombo}{playerName}{TotalScore}{Enum.GetName<Grade>(Grade)}{Mods.IntValue}Q{Passed}" +
+                $"{(int)GameMode.WithoutMods()}{osuVersion}{clientTime}{clientHash}{storyboardChecksum}";
+
+            prehash = prehash.Trim('\0'); // Trim trailing null bytes
+
+            Console.WriteLine($"Prehash: [{prehash}]");
+            Console.WriteLine($"BYTES: [{Convert.ToHexStringLower(Encoding.Unicode.GetBytes(prehash))}]");
+
+            return HashUtil.MD5HashAsUTF8(prehash);
         }
     }
 }

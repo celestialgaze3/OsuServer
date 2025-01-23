@@ -1,11 +1,10 @@
+using Org.BouncyCastle.Crypto.Digests;
 using OsuServer.API;
 using OsuServer.API.Packets;
 using OsuServer.External.OsuV2Api;
-using OsuServer.External.OsuV2Api.Requests;
-using OsuServer.External.OsuV2Api.Responses;
 using OsuServer.State;
-using System.Reflection;
-using static System.Collections.Specialized.BitVector32;
+using OsuServer.Util;
+using System.Text;
 
 namespace OsuServer
 {
@@ -17,6 +16,13 @@ namespace OsuServer
         public static OsuApiClient ApiClient { get; private set; }
         public static async Task Main(string[] args)
         {
+            string thing = "chickenmcnuggets118o15019smustard00uue459e338530515613280efe39b7ad47a148Truecookiiezi248936X2QTrue0202501112" +
+                "50123230218940f38f1f4451e069a0f8d62f3a27982:047C167585EC.0A002700000F.C4D0E397F7D0.C6D0E397F7CF.C4D0E397F7CF..:86ca7c3e" +
+                "9ccb205536c15a6105f20731:b44fc656f405998897e6b2ee7f6ddd67:994d7dd4596dd95ceb0656a8930ccd40:";
+
+
+            Console.WriteLine(HashUtil.MD5HashAsUTF8(thing));
+            Console.WriteLine($"BYTES: [{Convert.ToHexStringLower(Encoding.Unicode.GetBytes(thing))}]");
             ClientPacketHandler.RegisterPacketTypes();
 
             // Connect to osu! API (used to retrieve beatmap data)

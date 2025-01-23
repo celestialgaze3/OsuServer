@@ -281,7 +281,13 @@ namespace OsuServer.API
             string encryptedClientHashesBase64 = request.Form["s"].ToString();
             string ivBase64 = request.Form["iv"].ToString();
             string token = request.Form["token"].ToString(); // Don't know what this is for but it's really long
-            // Note: storyboard MD5 also sometimes present in key "sbk"
+
+            // Optional parameter
+            string storyboardMD5 = "";
+            if (request.Form.ContainsKey("sbk"))
+            {
+                storyboardMD5 = request.Form["sbk"].ToString();
+            }
 
             /* In order to get the score data, we have to decrypt it with AES and convert it from base64. We'll get 
              * both the score data and in the client hash in this way. The necessary tools for decryption are found
@@ -344,7 +350,24 @@ namespace OsuServer.API
                 return Results.Ok();
             }
 
-            // TODO validate checksums
+            // TODO validate all checksums
+            
+            // Compare score checksums
+            string expectedChecksum = scoreData.Score.CalculateChecksum(beatmapMD5, player.Username, osuVersion, scoreData.ClientTime,
+                Encoding.UTF8.GetString(decryptedClientHashes), storyboardMD5);
+            string clientChecksum = scoreData.Checksum;
+
+            if (clientChecksum != expectedChecksum)
+            {
+                Console.WriteLine($"{player.Username} has submitted a score with a seemingly invalid checksum! Ignoring this score submission.");
+                Console.WriteLine($"Expected checksum: {expectedChecksum}");
+                Console.WriteLine($"Client checksum: {clientChecksum}");
+
+                // TODO: some way of logging/notifying that this error occurred
+
+                return Results.Ok();
+            }
+            
 
             /* The score checksum is calculated with the all of the score data and a time, so it can be used to
              * uniquely identify a score. In this way, we can prevent duplicate submissions. */

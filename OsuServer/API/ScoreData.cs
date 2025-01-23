@@ -9,7 +9,7 @@ namespace OsuServer.API
         public string PlayerUsername { get; private set; }
         public string Checksum { get; private set; }
         public Score Score { get; private set; }
-        public string PlayTime { get; private set; }
+        public string ClientTime { get; private set; }
         public int ClientNum { get; private set; } // Note: info stored here
         public DateTime SubmittedTime { get; private set; }
 
@@ -17,7 +17,7 @@ namespace OsuServer.API
         {
             BeatmapMD5 = submissionArgs[0];
             PlayerUsername = submissionArgs[1];
-            Checksum = submissionArgs[2]; // "chickenmcnuggets{0}o15{1}{2}smustard{3}{4}uu{5}{6}{7}{8}{9}{10}{11}Q{12}{13}{15}{14:%y%m%d%H%M%S}{16}{17}"
+            Checksum = submissionArgs[2];
 
             Score = new(perfects: Int32.Parse(submissionArgs[3]), 
                 goods: Int32.Parse(submissionArgs[4]), 
@@ -34,7 +34,7 @@ namespace OsuServer.API
                 gameMode: (GameMode) Int32.Parse(submissionArgs[15])
             );
 
-            PlayTime = submissionArgs[16]; // TODO: parse DateTime
+            ClientTime = submissionArgs[16]; // TODO: parse DateTime
             ClientNum = Int32.Parse(submissionArgs[17]);
             SubmittedTime = DateTime.Now;
         }
