@@ -36,5 +36,10 @@
             Passed = passed;
             GameMode = gameMode;
         }
+
+        public float CalculateAccuracy()
+        {
+            return (float) (Perfects * 300 + Goods * 100 + Bads * 50) / ((Perfects + Goods + Bads + Misses) * 300);
+        }
     }
 }

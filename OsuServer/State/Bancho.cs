@@ -62,7 +62,7 @@ namespace OsuServer.State
         {
             if (PlayerTokenMap.ContainsKey(connection.Token)) return PlayerIDMap[PlayerTokenMap[connection.Token]];
 
-            Player player = new Player(connection, data);
+            Player player = new Player(this, connection, data);
             OnPlayerConnect(player);
             PlayerTokenMap.Add(connection.Token, player.Id);
             PlayerNameMap.Add(player.Username, player.Id);

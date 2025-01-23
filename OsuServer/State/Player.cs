@@ -15,6 +15,8 @@ namespace OsuServer.State
         // This player's unique token used to identify their requests ("osu-token" in headers)
         public Connection Connection { get; private set; }
 
+        private Bancho _bancho;
+
         public int Id { get; private set; }
         public string Username { get; private set; }
         public Privileges Privileges { get; private set; }
@@ -33,8 +35,9 @@ namespace OsuServer.State
 
         public List<int> ScoreIds { get; private set; }
 
-        public Player(Connection connection, LoginData loginData)
+        public Player(Bancho bancho, Connection connection, LoginData loginData)
         {
+            _bancho = bancho;
             Connection = connection;
 
             // Temporarily assigning IDs by incrementing until an account system is added
@@ -107,6 +110,26 @@ namespace OsuServer.State
             return ScoreIds.Count;
         }
 
+        public float CalculateAccuracy()
+        {
+            int totalScores = ScoreIds.Count;
+            float totalAccuracy = 0.0f;
+
+            foreach (var scoreId in ScoreIds)
+            {
+                Score? score = _bancho.GetScoreById(scoreId);
+                if (score == null)
+                {
+                    Console.WriteLine($"Player contains null score with ID {scoreId} ?");
+                    continue;
+                }
+                Console.WriteLine("Score " + score + " with acc " + score.CalculateAccuracy());
+                totalAccuracy += score.CalculateAccuracy();
+            }
+
+            return totalAccuracy / totalScores;
+        }
+
         /// <summary>
         /// Updates a player's stats based on a submitted score
         /// </summary>
@@ -129,8 +152,9 @@ namespace OsuServer.State
                 }
             }
 
-            // Calculate the player's new total pp
+            // Calculate and store the player's new total pp and accuracy
             Stats.PP = CalculatePerformancePoints();
+            Stats.Accuracy = CalculateAccuracy();
         }
 
     }
