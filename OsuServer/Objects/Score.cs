@@ -49,16 +49,15 @@ namespace OsuServer.Objects
 
         public string CalculateChecksum(string beatmapMD5, string playerName, string osuVersion, string clientTime, string clientHash, string storyboardChecksum)
         {
+
+            // TODO: THERE IS STILL SOMETHING WRONG HERE
+
             // Not sure why C# decides to put a billion null bytes at the end of this string. Thanks for the debugging nightmare
             string prehash = $"chickenmcnuggets{Perfects + Goods}o15{Bads}{Gekis}smustard{Katus}{Misses}uu{beatmapMD5}" +
                 $"{MaxCombo}{PerfectCombo}{playerName}{TotalScore}{Enum.GetName<Grade>(Grade)}{Mods.IntValue}Q{Passed}" +
                 $"{(int)GameMode.WithoutMods()}{osuVersion}{clientTime}{clientHash}{storyboardChecksum}";
 
             prehash = prehash.Trim('\0'); // Trim trailing null bytes
-
-            Console.WriteLine($"Prehash: [{prehash}]");
-            Console.WriteLine($"BYTES: [{Convert.ToHexStringLower(Encoding.Unicode.GetBytes(prehash))}]");
-
             return HashUtil.MD5HashAsUTF8(prehash);
         }
     }

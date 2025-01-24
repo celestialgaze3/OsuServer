@@ -2,7 +2,7 @@
 
 namespace OsuServer.Objects
 {
-    public class PlayerStats
+    public class ProfileStats
     {
 
         public long TotalScore = 0L;
@@ -10,11 +10,11 @@ namespace OsuServer.Objects
         public float Accuracy = 0f;
         public int Playcount = 0;
         public int Rank = 0;
-        public int PP = 0;
+        public float PP = 0.0f;
         public int MaxCombo = 0;
 
-        public PlayerStats() { }
-        public PlayerStats(long totalScore, long rankedScore, float accuracy, int playcount, int rank, int pp, int maxCombo)
+        public ProfileStats() { }
+        public ProfileStats(long totalScore, long rankedScore, float accuracy, int playcount, int rank, float pp, int maxCombo)
         {
             TotalScore = totalScore;
             RankedScore = rankedScore;
@@ -25,9 +25,9 @@ namespace OsuServer.Objects
             MaxCombo = maxCombo;
         }
 
-        public PlayerStats Clone()
+        public ProfileStats Clone()
         {
-            return new PlayerStats(TotalScore, RankedScore, Accuracy, Playcount, Rank, PP, MaxCombo);
+            return new ProfileStats(TotalScore, RankedScore, Accuracy, Playcount, Rank, PP, MaxCombo);
         }
     }
 }

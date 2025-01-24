@@ -10,11 +10,11 @@ namespace OsuServer.API
         private Bancho _bancho;
         private BeatmapExtended _beatmap;
         private Player _player;
-        private PlayerStats _oldStats;
-        private PlayerStats _newStats;
-        private Score? _oldScore;
-        public Score _newScore;
-        public ScoreReport(Bancho bancho, BeatmapExtended beatmap, Player player, PlayerStats oldStats, PlayerStats newStats, Score? oldScore, Score newScore)
+        private ProfileStats _oldStats;
+        private ProfileStats _newStats;
+        private SubmittedScore? _oldScore;
+        public SubmittedScore _newScore;
+        public ScoreReport(Bancho bancho, BeatmapExtended beatmap, Player player, ProfileStats oldStats, ProfileStats newStats, SubmittedScore? oldScore, SubmittedScore newScore)
         {
             _bancho = bancho;
             _oldScore = oldScore;
@@ -48,8 +48,8 @@ namespace OsuServer.API
                 UpdatedValue("totalScore", 0, 0),
                 UpdatedValue("maxCombo", 0, 0),
                 UpdatedValue("accuracy", 0, 0),
-                UpdatedValue("pp", 0, 0),
-                $"onlineScoreId:{_bancho.GetScoreId(scoreChecksum)}",
+                UpdatedValue("pp", 0, _newScore.PerformancePoints),
+                $"onlineScoreId:{_bancho.Scores.GetByChecksum(scoreChecksum)}",
                 "\n",
                 $"chartId:overall",
                 $"chartUrl:https://{ServerConfiguration.Domain}/u/{_player.Id}",

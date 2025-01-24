@@ -8,6 +8,7 @@ namespace OsuServer.State
     public class Bancho
     {
         public string Name { get; set; }
+        public BanchoScores Scores { get; private set; }
 
         private Dictionary<string, int> PlayerTokenMap = new();
         private Dictionary<string, int> PlayerNameMap = new();
@@ -17,18 +18,12 @@ namespace OsuServer.State
 
         private Dictionary<string, Channel> ChannelNameMap = new();
 
-        private Dictionary<string, Score> ScoreChecksumMap = new();
-
-        // TODO: Temporary score ID assignment, implement this with database functionality
-        private Dictionary<int, string> ScoreIdChecksumMap = new();
-        private Dictionary<string, int> ScoreChecksumIdMap = new();
-        private int _latestScoreId = 0;
-
         //private Dictionary<Beatmap, List<Score>> BeatmapScoreListMap = new();
 
         public Bancho(string name)
         {
             Name = name;
+            Scores = new BanchoScores(this);
 
             CreateDefaultChannels();
         }
@@ -80,48 +75,6 @@ namespace OsuServer.State
             Channel channel = new Channel(name, description, this);
             ChannelNameMap.Add(name, channel);
             return channel;
-        }
-
-        public void SubmitScore(Player player, Score score, string scoreChecksum)
-        {
-            if (IsScoreSubmitted(scoreChecksum)) return;
-            ScoreChecksumMap.Add(scoreChecksum, score);
-
-            // TODO: track ids properly
-            ScoreIdChecksumMap.Add(_latestScoreId, scoreChecksum);
-            ScoreChecksumIdMap.Add(scoreChecksum, _latestScoreId);
-
-            // Update the player's state based on this score
-            player.ScoreIds.Add(_latestScoreId); // TODO: does this belong here?
-            player.UpdateWithScore(score);
-
-            _latestScoreId++;
-        }
-        
-        public int GetScoreId(string checksum)
-        {
-            return ScoreChecksumIdMap[checksum];
-        }
-
-        public bool IsScoreSubmitted(string checksum)
-        {
-            return ScoreChecksumMap.ContainsKey(checksum);
-        }
-        public bool IsScoreSubmitted(int id)
-        {
-            return ScoreIdChecksumMap.ContainsKey(id);
-        }
-
-        public Score? GetScoreById(int id)
-        {
-            if (!IsScoreSubmitted(id)) return null;
-            return ScoreChecksumMap[ScoreIdChecksumMap[id]];
-        }
-
-        public Score? GetScoreByChecksum(string scoreChecksum)
-        {
-            if (!IsScoreSubmitted(scoreChecksum)) return null;
-            return ScoreChecksumMap[scoreChecksum];
         }
 
         public Connection? GetConnection(string token)

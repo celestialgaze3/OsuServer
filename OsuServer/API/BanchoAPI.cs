@@ -367,23 +367,23 @@ namespace OsuServer.API
 
                 return Results.Ok();
             }
-            
+
 
             /* The score checksum is calculated with the all of the score data and a time, so it can be used to
              * uniquely identify a score. In this way, we can prevent duplicate submissions. */
 
             // Save old player stats
-            PlayerStats oldStats = player.Stats.Clone();
+            ProfileStats oldStats = player.Stats.Values;
             
             // Update server state with this score
-            Bancho.SubmitScore(player, scoreData.Score, scoreData.Checksum);
+            SubmittedScore submittedScore = Bancho.Scores.Submit(player, scoreData.Score, scoreData.Checksum);
 
             // TODO: caching
             // Get beatmap information for the osu! API
             var beatmapLookupResponse = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5FromScore, null, null));
 
             // Send data back to client
-            ScoreReport report = new ScoreReport(Bancho, beatmapLookupResponse.BeatmapExtended, player, oldStats, player.Stats, null, scoreData.Score);
+            ScoreReport report = new ScoreReport(Bancho, beatmapLookupResponse.BeatmapExtended, player, oldStats, player.Stats.Values, null, submittedScore);
             string clientResponse = report.GenerateString(scoreData.Checksum);
 
             await response.Body.WriteAsync(Encoding.UTF8.GetBytes(clientResponse));
