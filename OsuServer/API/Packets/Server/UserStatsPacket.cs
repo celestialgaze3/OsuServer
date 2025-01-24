@@ -24,7 +24,7 @@ namespace OsuServer.API.Packets.Server
             binaryWriter.Write(Player.Stats.Values.Playcount); // playcount
             binaryWriter.Write(Player.Stats.Values.TotalScore); // total scotre
             binaryWriter.Write(Player.Stats.Values.Rank); // rank
-            binaryWriter.Write((short) Player.Stats.Values.PP); //pp
+            binaryWriter.Write((short) Math.Round(Player.Stats.Values.PP)); //pp
         }
     }
 }

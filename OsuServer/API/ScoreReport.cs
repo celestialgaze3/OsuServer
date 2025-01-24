@@ -48,7 +48,7 @@ namespace OsuServer.API
                 UpdatedValue("totalScore", 0, 0),
                 UpdatedValue("maxCombo", 0, 0),
                 UpdatedValue("accuracy", 0, 0),
-                UpdatedValue("pp", 0, _newScore.PerformancePoints),
+                UpdatedValue("pp", 0, (float) Math.Round(_newScore.PerformancePoints)),
                 $"onlineScoreId:{_bancho.Scores.GetByChecksum(scoreChecksum)}",
                 "\n",
                 $"chartId:overall",
@@ -59,7 +59,7 @@ namespace OsuServer.API
                 UpdatedValue("totalScore", _oldStats.TotalScore, _newStats.TotalScore),
                 UpdatedValue("maxCombo", _oldStats.MaxCombo, _newStats.MaxCombo),
                 UpdatedValue("accuracy", _oldStats.Accuracy * 100f, _newStats.Accuracy * 100f),
-                UpdatedValue("pp", (float) Math.Floor(_oldStats.PP), (float) Math.Floor(_newStats.PP)),
+                UpdatedValue("pp", (float) Math.Round(_oldStats.PP), (float) Math.Round(_newStats.PP)),
                 $"achievements-new:" // TODO: achievements
             ];
             return string.Join("|", report);
