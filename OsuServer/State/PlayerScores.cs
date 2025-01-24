@@ -24,7 +24,7 @@ namespace OsuServer.State
 
         public float CalculatePerformancePoints()
         {
-
+            int totalPasses = 0;
             float totalPP = 0.0f;
             for (int i = 0; i < _scoreIds.Count; i++) 
             {
@@ -39,7 +39,8 @@ namespace OsuServer.State
 
                 if (!score.Passed) continue;
 
-                totalPP += (float)(score.PerformancePoints * Math.Pow(0.95f, i));
+                totalPP += (float)(score.PerformancePoints * Math.Pow(0.95f, totalPasses));
+                totalPasses++;
             }
 
             return totalPP;
