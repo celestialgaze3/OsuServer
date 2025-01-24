@@ -59,7 +59,7 @@ namespace OsuServer.API
                 UpdatedValue("totalScore", _oldStats.TotalScore, _newStats.TotalScore),
                 UpdatedValue("maxCombo", _oldStats.MaxCombo, _newStats.MaxCombo),
                 UpdatedValue("accuracy", _oldStats.Accuracy * 100f, _newStats.Accuracy * 100f),
-                UpdatedValue("pp", _oldStats.PP, _newStats.PP),
+                UpdatedValue("pp", (float) Math.Floor(_oldStats.PP), (float) Math.Floor(_newStats.PP)),
                 $"achievements-new:" // TODO: achievements
             ];
             return string.Join("|", report);
