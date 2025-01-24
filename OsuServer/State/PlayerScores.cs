@@ -37,6 +37,8 @@ namespace OsuServer.State
                     continue;
                 }
 
+                if (!score.Passed) continue;
+
                 totalPP += (float)(score.PerformancePoints * Math.Pow(0.95f, i));
             }
 
@@ -45,7 +47,7 @@ namespace OsuServer.State
 
         public float CalculateAccuracy()
         {
-            int totalScores = _scoreIds.Count;
+            int totalPasses = 0;
             float totalAccuracyWeighted = 0.0f;
 
             for (int i = 0; i < _scoreIds.Count; i++)
@@ -58,10 +60,13 @@ namespace OsuServer.State
                     continue;
                 }
 
-                totalAccuracyWeighted += (float)(score.CalculateAccuracy() * Math.Pow(0.95f, i));
+                if (!score.Passed) continue;
+
+                totalAccuracyWeighted += (float)(score.CalculateAccuracy() * Math.Pow(0.95f, totalPasses));
+                totalPasses++;
             }
 
-            return (float)(totalAccuracyWeighted * (1.0f / (20f * (1f - Math.Pow(0.95f, totalScores)))));
+            return (float)(totalAccuracyWeighted * (1.0f / (20f * (1f - Math.Pow(0.95f, totalPasses)))));
         }
 
         /// <summary>
