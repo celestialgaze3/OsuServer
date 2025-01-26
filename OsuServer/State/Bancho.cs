@@ -1,5 +1,7 @@
 ﻿using OsuServer.API;
 using OsuServer.API.Packets.Server;
+using OsuServer.External.OsuV2Api.Requests;
+using OsuServer.External.OsuV2Api.Responses;
 using OsuServer.Objects;
 using System.Numerics;
 
@@ -10,15 +12,16 @@ namespace OsuServer.State
         public string Name { get; set; }
         public BanchoScores Scores { get; private set; }
 
-        private Dictionary<string, int> PlayerTokenMap = new();
-        private Dictionary<string, int> PlayerNameMap = new();
-        private Dictionary<string, int> PlayerUsernamePasswordMD5Map = new(); // For identifying players from submitted scores
-        private Dictionary<int, Player> PlayerIDMap = new();
-        private Dictionary<string, Connection> ConnectionTokenMap = new();
+        private Dictionary<string, int> _tokenToPlayerId = new();
+        private Dictionary<string, int> _nameToPlayerId = new();
+        private Dictionary<string, int> _usernamePasswordMD5ToPlayerId = new(); // For identifying players from submitted scores
+        private Dictionary<int, Player> _playerIdToPlayer = new();
+        private Dictionary<string, Connection> _tokenToConnection = new();
 
-        private Dictionary<string, Channel> ChannelNameMap = new();
+        private Dictionary<string, Channel> _nameToChannel = new();
 
-        //private Dictionary<Beatmap, List<Score>> BeatmapScoreListMap = new();
+        private Dictionary<int, BanchoBeatmap> _beatmapIdToBeatmap = new();
+        private Dictionary<string, int> _beatmapMD5ToBeatmapId = new();
 
         public Bancho(string name)
         {
@@ -36,82 +39,102 @@ namespace OsuServer.State
 
         public List<Player> GetPlayers()
         {
-            return PlayerIDMap.Values.ToList();
+            return _playerIdToPlayer.Values.ToList();
         }
 
         public List<Channel> GetChannels()
         {
-            return ChannelNameMap.Values.ToList();
+            return _nameToChannel.Values.ToList();
         }
 
         public Connection CreateConnection(string token)
         {
-            if (ConnectionTokenMap.ContainsKey(token)) return ConnectionTokenMap[token];
+            if (_tokenToConnection.ContainsKey(token)) return _tokenToConnection[token];
 
             Connection connection = new Connection(token, this);
-            ConnectionTokenMap.Add(token, connection);
+            _tokenToConnection.Add(token, connection);
             return connection;
         }
 
         public Player CreatePlayer(Connection connection, LoginData data)
         {
-            if (PlayerTokenMap.ContainsKey(connection.Token)) return PlayerIDMap[PlayerTokenMap[connection.Token]];
+            if (_tokenToPlayerId.ContainsKey(connection.Token)) return _playerIdToPlayer[_tokenToPlayerId[connection.Token]];
 
             Player player = new Player(this, connection, data);
             OnPlayerConnect(player);
-            PlayerTokenMap.Add(connection.Token, player.Id);
-            PlayerNameMap.Add(player.Username, player.Id);
-            PlayerIDMap.Add(player.Id, player);
+            _tokenToPlayerId.Add(connection.Token, player.Id);
+            _nameToPlayerId.Add(player.Username, player.Id);
+            _playerIdToPlayer.Add(player.Id, player);
 
             // Map username + passwords to player IDs
-            PlayerUsernamePasswordMD5Map.Add(player.Username + "#" + player.LoginData.Password, player.Id);
+            _usernamePasswordMD5ToPlayerId.Add(player.Username + "#" + player.LoginData.Password, player.Id);
             return player;
+        }
+
+        public async Task<BanchoBeatmap> GetBeatmap(string beatmapMD5)
+        {
+            // Retrieve from cache if it already exists
+            if (_beatmapMD5ToBeatmapId.ContainsKey(beatmapMD5))
+            {
+                return _beatmapIdToBeatmap[_beatmapMD5ToBeatmapId[beatmapMD5]];
+            }
+
+            // Query osu! API for beatmap information
+            BeatmapLookupResponse response = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5, null, null));
+            int id = response.BeatmapExtended.Id;
+
+            BanchoBeatmap beatmap = new BanchoBeatmap(this, response.BeatmapExtended);
+
+            _beatmapMD5ToBeatmapId.Add(beatmapMD5, id);
+            _beatmapIdToBeatmap.Add(id, beatmap);
+
+            return beatmap;
         }
 
         public Channel CreateChannel(string name, string description)
         {
-            if (ChannelNameMap.ContainsKey(name)) return ChannelNameMap[name];
+            if (_nameToChannel.ContainsKey(name)) return _nameToChannel[name];
 
             Channel channel = new Channel(name, description, this);
-            ChannelNameMap.Add(name, channel);
+            _nameToChannel.Add(name, channel);
             return channel;
         }
 
         public Connection? GetConnection(string token)
         {
-            if (!ConnectionTokenMap.ContainsKey(token)) return null;
-            return ConnectionTokenMap[token];
+            if (!_tokenToConnection.ContainsKey(token)) return null;
+            return _tokenToConnection[token];
         }
 
         public Player? GetPlayer(string token)
         {
-            if (!PlayerTokenMap.ContainsKey(token)) return null;
-            return PlayerIDMap[PlayerTokenMap[token]];
+            if (!_tokenToPlayerId.ContainsKey(token)) return null;
+            return _playerIdToPlayer[_tokenToPlayerId[token]];
         }
 
         public Player? GetPlayer(int id)
         {
-            if (!PlayerIDMap.ContainsKey(id)) return null;
-            return PlayerIDMap[id];
+            if (!_playerIdToPlayer.ContainsKey(id)) return null;
+            return _playerIdToPlayer[id];
         }
 
         public Player? GetPlayer(string username, string passwordMD5)
         {
             string key = username + "#" + passwordMD5;
-            if (!PlayerUsernamePasswordMD5Map.ContainsKey(key)) return null;
-            return PlayerIDMap[PlayerUsernamePasswordMD5Map[key]];
+            if (!_usernamePasswordMD5ToPlayerId.ContainsKey(key)) return null;
+            return _playerIdToPlayer[_usernamePasswordMD5ToPlayerId[key]];
         }
 
         public Player? GetPlayerByUsername(string name)
         {
-            if (!PlayerNameMap.ContainsKey(name)) return null;
-            return PlayerIDMap[PlayerNameMap[name]];
+            if (!_nameToPlayerId.ContainsKey(name)) return null;
+            return _playerIdToPlayer[_nameToPlayerId[name]];
         }
 
         public Channel? GetChannel(string name)
         {
-            if (!ChannelNameMap.ContainsKey(name)) return null;
-            return ChannelNameMap[name];
+            if (!_nameToChannel.ContainsKey(name)) return null;
+            return _nameToChannel[name];
         }
 
         public void OnPlayerConnect(Player player)
@@ -138,8 +161,8 @@ namespace OsuServer.State
 
         public void RemovePlayer(Player player)
         {
-            PlayerTokenMap.Remove(player.Connection.Token);
-            PlayerIDMap.Remove(player.Id);
+            _tokenToPlayerId.Remove(player.Connection.Token);
+            _playerIdToPlayer.Remove(player.Id);
 
             // Remove the player's internal state from bancho
             player.ClearState();

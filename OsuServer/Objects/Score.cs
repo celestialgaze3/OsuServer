@@ -58,6 +58,10 @@ namespace OsuServer.Objects
                 $"{(int)GameMode.WithoutMods()}{osuVersion}{clientTime}{clientHash}{storyboardChecksum}";
 
             prehash = prehash.Trim('\0'); // Trim trailing null bytes
+
+            Console.WriteLine($"Prehash: [{prehash}]");
+            Console.WriteLine($"BYTES: [{Convert.ToHexStringLower(Encoding.Unicode.GetBytes(prehash))}]");
+
             return HashUtil.MD5HashAsUTF8(prehash);
         }
     }

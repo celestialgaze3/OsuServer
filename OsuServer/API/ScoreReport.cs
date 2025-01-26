@@ -12,9 +12,9 @@ namespace OsuServer.API
         private Player _player;
         private ProfileStats _oldStats;
         private ProfileStats _newStats;
-        private SubmittedScore? _oldScore;
-        public SubmittedScore _newScore;
-        public ScoreReport(Bancho bancho, BeatmapExtended beatmap, Player player, ProfileStats oldStats, ProfileStats newStats, SubmittedScore? oldScore, SubmittedScore newScore)
+        private ScoreStats _oldScore;
+        public ScoreStats _newScore;
+        public ScoreReport(Bancho bancho, BeatmapExtended beatmap, Player player, ProfileStats oldStats, ProfileStats newStats, ScoreStats oldScore, ScoreStats newScore)
         {
             _bancho = bancho;
             _oldScore = oldScore;
@@ -42,13 +42,13 @@ namespace OsuServer.API
                 $"chartId:beatmap",
                 $"chartUrl:https://{ServerConfiguration.Domain}/b/{_beatmap.Id}",
                 $"chartName:Beatmap Ranking",
-                // TODO: these values are the updated map rank statistics. implement when you can track that
+                // TODO: map rankings
                 UpdatedValue("rank", 0, 0),
-                UpdatedValue("rankedScore", 0, 0),
-                UpdatedValue("totalScore", 0, 0),
-                UpdatedValue("maxCombo", 0, 0),
-                UpdatedValue("accuracy", 0, 0),
-                UpdatedValue("pp", 0, (float) Math.Round(_newScore.PerformancePoints)),
+                UpdatedValue("rankedScore", _oldScore.TotalScore, _newScore.TotalScore),
+                UpdatedValue("totalScore", _oldScore.TotalScore, _newScore.TotalScore),
+                UpdatedValue("maxCombo", _oldScore.Combo, _newScore.Combo),
+                UpdatedValue("accuracy", _oldScore.Accuracy * 100f, _newScore.Accuracy * 100f),
+                UpdatedValue("pp", (float) Math.Round(_oldScore.PerformancePoints), (float) Math.Round(_newScore.PerformancePoints)),
                 $"onlineScoreId:{_bancho.Scores.GetByChecksum(scoreChecksum)}",
                 "\n",
                 $"chartId:overall",
