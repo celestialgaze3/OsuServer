@@ -381,11 +381,8 @@ namespace OsuServer.API
             SubmittedScore submittedScore = Bancho.Scores.Submit(player, scoreData.Score, scoreData.Checksum);
             ScoreStats oldBestStats = beatmap.UpdateWithScore(player, submittedScore);
 
-            // Get beatmap information for the osu! API
-            var beatmapLookupResponse = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5FromScore, null, null));
-
             // Send data back to client
-            ScoreReport report = new ScoreReport(Bancho, beatmapLookupResponse.BeatmapExtended, player, oldStats, player.Stats.Values,
+            ScoreReport report = new ScoreReport(Bancho, beatmap.Info, player, oldStats, player.Stats.Values,
                 oldBestStats, new ScoreStats(submittedScore));
             string clientResponse = report.GenerateString(scoreData.Checksum);
 
