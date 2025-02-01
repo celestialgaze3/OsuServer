@@ -18,11 +18,16 @@ namespace OsuServer.External.Database.Tables
     {
         public override async Task<int> CreateTableAsync()
         {
+            bool existed = await CheckExistsAsync();
             await base.CreateTableAsync();
 
             // Start auto-incrementing account IDs from 3, to avoid "Do you really want to ask peppy?" when attempting to message ID 2
-            var command = new MySqlCommand($"ALTER TABLE {Name} AUTO_INCREMENT=3;", _connection);
-            return await command.ExecuteNonQueryAsync();
+            if (!existed)
+            {
+                var command = new MySqlCommand($"ALTER TABLE {Name} AUTO_INCREMENT=3;", _connection);
+                return await command.ExecuteNonQueryAsync();
+            }
+            return 0;
         }
 
         protected override DbAccount InterpretLatestRecord(MySqlDataReader reader)

@@ -19,6 +19,19 @@ namespace OsuServer.External.Database
             Name = name;
         }
 
+        public async Task<bool> CheckExistsAsync()
+        {
+            var command = new MySqlCommand("SELECT count(*) " +
+                "FROM information_schema.tables " +
+                $"WHERE table_schema = '{ServerConfiguration.DatabaseName}' " +
+                $"AND table_name = '{Name}'", _connection);
+
+            long? count = (long?)await command.ExecuteScalarAsync();
+            bool tableExisted = count != null && count > 0;
+
+            return tableExisted;
+        }
+
         /// <summary>
         /// Creates the table if it does not exist
         /// </summary>
