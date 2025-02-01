@@ -45,6 +45,7 @@ namespace OsuServer.State
         {
             return ChecksumToId.ContainsKey(checksum);
         }
+
         public bool IsSubmitted(int id)
         {
             return IdToScore.ContainsKey(id);
@@ -52,8 +53,10 @@ namespace OsuServer.State
 
         public SubmittedScore? GetById(int id)
         {
-            if (!IsSubmitted(id)) return null;
-            return IdToScore[id];
+            SubmittedScore? result = null;
+            if (IdToScore.TryGetValue(id, out result)) 
+                return result;
+            return null;
         }
 
         public SubmittedScore? GetByChecksum(string scoreChecksum)

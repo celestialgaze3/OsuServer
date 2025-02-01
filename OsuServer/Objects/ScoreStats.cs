@@ -35,35 +35,51 @@ namespace OsuServer.Objects
         /// <param name="scores">List of scores</param>
         public ScoreStats(params SubmittedScore?[] scores)
         {
-
             for (int i = 0; i < scores.Length; i++)
             {
-                SubmittedScore? score = scores[i];
-                if (score == null) continue;
-
-                if (PerformancePoints < score.PerformancePoints) 
-                { 
-                    PerformancePoints = score.PerformancePoints;
-                }
-
-                if (TotalScore < score.TotalScore)
-                {
-                    TotalScore = score.TotalScore;
-                }
-
-                if (Combo < score.MaxCombo)
-                {
-                    Combo = score.MaxCombo;
-                }
-
-                float accuracy = score.CalculateAccuracy();
-                if (Accuracy < accuracy)
-                {
-                    Accuracy = accuracy;
-                }
+                SetBestValues(scores[i]);
             }
         }
 
+        /// <summary>
+        /// Fills this ScoreStats instance with the highest stats from the given scores
+        /// </summary>
+        /// <param name="bancho">The bancho instance containing thse score IDs</param>
+        /// <param name="scoreIds">List of score IDs</param>
+        public ScoreStats(Bancho bancho, List<int> scoreIds)
+        {
+            for (int i = 0; i < scoreIds.Count; i++)
+            {
+                SubmittedScore? score = bancho.Scores.GetById(scoreIds[i]);
+                SetBestValues(score);
+            }
+        }
+
+        private void SetBestValues(SubmittedScore? score)
+        {
+            if (score == null) return;
+
+            if (PerformancePoints < score.PerformancePoints)
+            {
+                PerformancePoints = score.PerformancePoints;
+            }
+
+            if (TotalScore < score.TotalScore)
+            {
+                TotalScore = score.TotalScore;
+            }
+
+            if (Combo < score.MaxCombo)
+            {
+                Combo = score.MaxCombo;
+            }
+
+            float accuracy = score.CalculateAccuracy();
+            if (Accuracy < accuracy)
+            {
+                Accuracy = accuracy;
+            }
+        }
 
     }
 }

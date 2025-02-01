@@ -6,9 +6,6 @@ namespace OsuServer.State
 {
     public class Player
     {
-        // Start IDs at 3 to avoid "Do you really want to ask peppy?" when attempting to message ID 2
-        private static int s_idCounter = 3;
-
         // This player's unique token used to identify their requests ("osu-token" in headers)
         public Connection Connection { get; private set; }
 
@@ -30,26 +27,21 @@ namespace OsuServer.State
         public DateTime LoginTime { get; private set; }
         public PlayerScores Scores { get; private set; }
 
-        public Player(Bancho bancho, Connection connection, LoginData loginData)
+        public Player(int id, Bancho bancho, Connection connection, LoginData loginData)
         {
+            Id = id;
             _bancho = bancho;
             Connection = connection;
-
-            // Temporarily assigning IDs by incrementing until an account system is added
-            Id = s_idCounter; s_idCounter++;
-
             Username = loginData.Username;
-
             Privileges = new Privileges();
             Stats = new PlayerStats(this);
             Presence = new Presence();
             Status = new Status();
-            Channels = new List<Channel>();
-            Friends = new List<int>();
+            Channels = [];
+            Friends = [];
             LoginData = loginData;
             Presence.UtcOffset = loginData.UtcOffset;
             BlockingStrangerMessages = loginData.DisallowPrivateMessages;
-
             LoginTime = DateTime.Now;
             Scores = new PlayerScores(this, _bancho);
         }

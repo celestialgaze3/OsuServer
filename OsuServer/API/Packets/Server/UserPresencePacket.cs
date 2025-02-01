@@ -16,10 +16,10 @@ namespace OsuServer.API.Packets.Server
             binaryWriter.WriteOsuString(Player.Username); // username
             binaryWriter.Write((byte) Player.Presence.UtcOffset); // utc offset
             binaryWriter.Write((byte) Player.Presence.Geolocation.CountryCode); // country code
-            binaryWriter.Write(Player.Privileges.GetIntValue()); // privileges
+            binaryWriter.Write(Player.Privileges.IntValue); // privileges
             binaryWriter.Write(Player.Presence.Geolocation.Longitude); // longitude
             binaryWriter.Write(Player.Presence.Geolocation.Latitude); // latitude
-            binaryWriter.Write(Player.Stats.Values.Rank); // rank (for some reason)
+            binaryWriter.Write(Player.Stats.Values.Rank); // rank
         }
     }
 }

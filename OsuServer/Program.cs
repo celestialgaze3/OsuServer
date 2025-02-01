@@ -1,21 +1,37 @@
-using Org.BouncyCastle.Crypto.Digests;
+using MySqlConnector;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using OsuServer.API;
 using OsuServer.API.Packets;
+using OsuServer.External.Database;
 using OsuServer.External.OsuV2Api;
 using OsuServer.State;
-using OsuServer.Util;
-using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Linq;
+using OsuServer.External.Database.Rows;
+using OsuServer.External.Database.Tables;
 
 namespace OsuServer
 {
     public class Program
     {
 
-        public static Bancho s_Bancho = new Bancho("Bancho");
-        public static BanchoAPI s_BanchoEndpoint = new BanchoAPI(s_Bancho);
+        public static Bancho s_Bancho;
+        public static BanchoAPI s_BanchoEndpoint;
         public static OsuApiClient ApiClient { get; private set; }
         public static async Task Main(string[] args)
         {
+            Console.WriteLine("Connecting to MySQL...");
+            using var connection = new MySqlConnection($"Server={ServerConfiguration.DatabaseServerIP};" +
+                                                       $"User ID={ServerConfiguration.DatabaseUsername};" +
+                                                       $"Password={ServerConfiguration.DatabasePassword};" +
+                                                       $"Database={ServerConfiguration.DatabaseName}");
+            await connection.OpenAsync();
+            Console.WriteLine("Complete!");
+
+            s_Bancho = new Bancho(connection, "Bancho");
+            s_BanchoEndpoint = new BanchoAPI(s_Bancho);
+
             ClientPacketHandler.RegisterPacketTypes();
 
             // Connect to osu! API (used to retrieve beatmap data)
@@ -45,13 +61,19 @@ namespace OsuServer
 
             // Score submission
             app.MapPost("/web/osu-submit-modular-selector.php", async (HttpContext context) => await s_BanchoEndpoint.HandleScoreSubmission(context));
-            
+
+            // Account registration
+            app.MapPost("/users", async (HttpContext context) => await s_BanchoEndpoint.HandleAccountRegistration(context));
+
             app.Run();
         }
 
         public static async Task<IResult> Handle(HttpContext context)
         {
-            await context.Response.WriteAsync($"{s_Bancho.Name} is up and running!");
+            HttpRequest request = context.Request;
+            HttpResponse response = context.Response;
+
+            await response.WriteAsync($"{s_Bancho.Name} is up and running!");
             return Results.Ok();
         }
 

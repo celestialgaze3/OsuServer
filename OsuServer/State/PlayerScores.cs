@@ -12,7 +12,7 @@ namespace OsuServer.State
             _player = player;
             _bancho = bancho;
 
-            _scoreIds = new List<int>();
+            _scoreIds = [];
             /*
             ScoreIds = new List<int>();
 

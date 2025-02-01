@@ -8,6 +8,19 @@
         public bool Owner { get; set; }
         public bool Developer { get; set; }
         public bool Tournament { get; set; }
+        public int IntValue { 
+            get
+            {
+                int value = 0;
+                value |= (Player ? 1 : 0) << 0;
+                value |= (Moderator ? 1 : 0) << 1;
+                value |= (Supporter ? 1 : 0) << 2;
+                value |= (Owner ? 1 : 0) << 3;
+                value |= (Developer ? 1 : 0) << 4;
+                value |= (Tournament ? 1 : 0) << 5;
+                return value;
+            } 
+        }
 
         public Privileges()
         {
@@ -24,16 +37,5 @@
             Tournament = tournament;
         }
 
-        public int GetIntValue()
-        {
-            int value = 0;
-            value = value | (Player ? 1 : 0) << 0;
-            value = value | (Moderator ? 1 : 0) << 1;
-            value = value | (Supporter ? 1 : 0) << 2;
-            value = value | (Owner ? 1 : 0) << 3;
-            value = value | (Developer ? 1 : 0) << 4;
-            value = value | (Tournament ? 1 : 0) << 5;
-            return value;
-        }
     }
 }

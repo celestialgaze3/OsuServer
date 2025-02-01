@@ -1,9 +1,8 @@
-﻿using OsuServer.API;
+﻿using MySqlConnector;
+using OsuServer.API;
 using OsuServer.API.Packets.Server;
 using OsuServer.External.OsuV2Api.Requests;
 using OsuServer.External.OsuV2Api.Responses;
-using OsuServer.Objects;
-using System.Numerics;
 
 namespace OsuServer.State
 {
@@ -11,6 +10,8 @@ namespace OsuServer.State
     {
         public string Name { get; set; }
         public BanchoScores Scores { get; private set; }
+
+        public MySqlConnection DatabaseConnection { get; private set; }
 
         private Dictionary<string, int> _tokenToPlayerId = new();
         private Dictionary<string, int> _nameToPlayerId = new();
@@ -23,8 +24,9 @@ namespace OsuServer.State
         private Dictionary<int, BanchoBeatmap> _beatmapIdToBeatmap = new();
         private Dictionary<string, int> _beatmapMD5ToBeatmapId = new();
 
-        public Bancho(string name)
+        public Bancho(MySqlConnection connection, string name)
         {
+            DatabaseConnection = connection;
             Name = name;
             Scores = new BanchoScores(this);
 
@@ -47,6 +49,11 @@ namespace OsuServer.State
             return _nameToChannel.Values.ToList();
         }
 
+        public Connection TokenlessConnection(string mockToken)
+        {
+            return new(mockToken, this);
+        }
+
         public Connection CreateConnection(string token)
         {
             if (_tokenToConnection.ContainsKey(token)) return _tokenToConnection[token];
@@ -56,18 +63,18 @@ namespace OsuServer.State
             return connection;
         }
 
-        public Player CreatePlayer(Connection connection, LoginData data)
+        public Player CreatePlayer(int id, Connection connection, LoginData data)
         {
             if (_tokenToPlayerId.ContainsKey(connection.Token)) return _playerIdToPlayer[_tokenToPlayerId[connection.Token]];
 
-            Player player = new Player(this, connection, data);
+            Player player = new Player(id, this, connection, data);
             OnPlayerConnect(player);
-            _tokenToPlayerId.Add(connection.Token, player.Id);
-            _nameToPlayerId.Add(player.Username, player.Id);
-            _playerIdToPlayer.Add(player.Id, player);
+            _tokenToPlayerId[connection.Token] = player.Id;
+            _nameToPlayerId[player.Username] = player.Id;
+            _playerIdToPlayer[player.Id] = player;
 
             // Map username + passwords to player IDs
-            _usernamePasswordMD5ToPlayerId.Add(player.Username + "#" + player.LoginData.Password, player.Id);
+            _usernamePasswordMD5ToPlayerId[player.Username + "#" + player.LoginData.Password] = player.Id;
             return player;
         }
 

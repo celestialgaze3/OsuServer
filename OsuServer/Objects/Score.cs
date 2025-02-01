@@ -50,14 +50,38 @@ namespace OsuServer.Objects
         public string CalculateChecksum(string beatmapMD5, string playerName, string osuVersion, string clientTime, string clientHash, string storyboardChecksum)
         {
 
-            // TODO: THERE IS STILL SOMETHING WRONG HERE
-
-            // Not sure why C# decides to put a billion null bytes at the end of this string. Thanks for the debugging nightmare
-            string prehash = $"chickenmcnuggets{Perfects + Goods}o15{Bads}{Gekis}smustard{Katus}{Misses}uu{beatmapMD5}" +
+            // Not sure why C# decides to put a billion null bytes at the end of strings. Thanks for the debugging nightmare
+            /*string prehash = $"chickenmcnuggets{Perfects + Goods}o15{Bads}{Gekis}smustard{Katus}{Misses}uu{beatmapMD5}" +
                 $"{MaxCombo}{PerfectCombo}{playerName}{TotalScore}{Enum.GetName<Grade>(Grade)}{Mods.IntValue}Q{Passed}" +
-                $"{(int)GameMode.WithoutMods()}{osuVersion}{clientTime}{clientHash}{storyboardChecksum}";
+                $"{(int)GameMode.WithoutMods()}{osuVersion}{clientTime}{clientHash}{storyboardChecksum}";*/
 
-            prehash = prehash.Trim('\0'); // Trim trailing null bytes
+            // We're trimming all the strings that go in and out of this thing because C# loves throwing around null bytes and not cleaning up.
+            StringBuilder sb = new StringBuilder();
+            sb.Append("chickenmcnuggets");
+            sb.Append(Perfects + Goods);
+            sb.Append("o15");
+            sb.Append(Bads);
+            sb.Append(Gekis);
+            sb.Append("smustard");
+            sb.Append(Katus);
+            sb.Append(Misses);
+            sb.Append("uu");
+            sb.Append(beatmapMD5.TrimEnd('\0'));
+            sb.Append(MaxCombo);
+            sb.Append(PerfectCombo);
+            sb.Append(playerName.TrimEnd('\0'));
+            sb.Append(TotalScore);
+            sb.Append(Enum.GetName<Grade>(Grade));
+            sb.Append(Mods.IntValue);
+            sb.Append("Q");
+            sb.Append(Passed);
+            sb.Append((int)GameMode.WithoutMods());
+            sb.Append(osuVersion.TrimEnd('\0'));
+            sb.Append(clientTime.TrimEnd('\0'));
+            sb.Append(clientHash.TrimEnd('\0'));
+            sb.Append(storyboardChecksum.TrimEnd('\0'));
+
+            string prehash = sb.ToString().TrimEnd('\0');
 
             Console.WriteLine($"Prehash: [{prehash}]");
             Console.WriteLine($"BYTES: [{Convert.ToHexStringLower(Encoding.Unicode.GetBytes(prehash))}]");

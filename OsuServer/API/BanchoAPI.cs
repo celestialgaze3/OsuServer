@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.Extensions.Primitives;
+﻿using Microsoft.Extensions.Primitives;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
@@ -8,15 +6,14 @@ using Org.BouncyCastle.Crypto.Parameters;
 using OsuServer.API.Packets;
 using OsuServer.API.Packets.Client;
 using OsuServer.API.Packets.Server;
-using OsuServer.External.OsuV2Api.Requests;
+using OsuServer.External.Database;
+using OsuServer.External.Database.Rows;
+using OsuServer.External.Database.Tables;
 using OsuServer.Objects;
 using OsuServer.State;
-using System.Buffers;
-using System.Collections.Generic;
-using System.IO.Pipelines;
-using System.Reflection.PortableExecutable;
-using System.Security.Cryptography;
+using OsuServer.Util;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace OsuServer.API
 {
@@ -134,15 +131,32 @@ namespace OsuServer.API
 
             /*
              * Information that is currently unused:
-             * 1. Password (planned): User authentication (requires account system)
-             * 2. Version (planned): Checking osu! version (disallow versions that are too old)
-             * 3. ShouldDisplayCity: I don't know if I will ever implement the geolocation feature (which I'm assuming 
+             * 1. Version (planned): Checking osu! version (disallow versions that are too old)
+             * 2. ShouldDisplayCity: I don't know if I will ever implement the geolocation feature (which I'm assuming 
              * this is related to). I've never used it in-game.
-             * 4. All of the weird hashes: I assume these are used to uniquely identify computers to assist with multi-
+             * 3. All of the weird hashes: I assume these are used to uniquely identify computers to assist with multi-
              * account prevention. I am not sure if I care to prevent that with this server, so I may never use these.
              */
 
-            // Let's assume the login request is valid even though no checks are implemented and go from there.
+            // Now we need to validate the login credentials
+            // Get the account they are supposed to be signing into
+            DbAccountTable accountTable = new(Bancho.DatabaseConnection);
+            await accountTable.CreateTableAsync();
+            DbAccount? account = await accountTable.FetchOneAsync(
+                new DbClause("WHERE", "username = @username", new() { ["username"] = loginData.Username })
+            );
+
+            // Ensure account exists and password matches
+            if (account == null || !BCrypt.Net.BCrypt.Verify(loginData.Password, account.Password))
+            {
+                response.Headers.Append("cho-token", "incorrect-credentials");
+                Connection failedConnection = Bancho.TokenlessConnection("incorrect-credentials");
+                failedConnection.AddPendingPacket(new UserIdPacket((int)LoginFailureType.AuthenticationFailed, "incorrect-credentials", Bancho));
+                await response.Body.WriteAsync(failedConnection.FlushPendingPackets());
+
+                return Results.Ok();
+            }
+            // TODO: disallow multiple sessions
 
             // We now need to send all of the information the client needs to be convinced it's fully connected.
 
@@ -152,7 +166,7 @@ namespace OsuServer.API
 
             // Create a connection and player instances for this client
             Connection connection = Bancho.CreateConnection(osuToken);
-            Player player = Bancho.CreatePlayer(connection, loginData);
+            Player player = Bancho.CreatePlayer(account.Id, connection, loginData);
 
             // We now need to send packet information: starting with the protocol version. This is always 19.
             connection.AddPendingPacket(new ProtocolVersionPacket(19, osuToken, Bancho));
@@ -161,7 +175,7 @@ namespace OsuServer.API
             connection.AddPendingPacket(new UserIdPacket(player.Id, osuToken, Bancho));
 
             // The privileges the client has (supporter, admin, etc)
-            connection.AddPendingPacket(new PrivilegesPacket(player.Privileges.GetIntValue(), osuToken, Bancho));
+            connection.AddPendingPacket(new PrivilegesPacket(player.Privileges.IntValue, osuToken, Bancho));
 
             // Welcome to Bancho! notification, mostly for debug purposes.
             connection.AddPendingPacket(new NotificationPacket($"Welcome to {Bancho.Name}!", osuToken, Bancho));
@@ -406,6 +420,132 @@ namespace OsuServer.API
             int outputLength = cipher.ProcessBytes(encrypted, outputBytes, 0);
             cipher.DoFinal(outputBytes, outputLength);
             return outputBytes;
+        }
+
+        public async Task<IResult> HandleAccountRegistration(HttpContext context)
+        {
+            HttpRequest request = context.Request;
+            HttpResponse response = context.Response;
+
+            DbAccountTable accountTable = new(Bancho.DatabaseConnection);
+            await accountTable.CreateTableAsync();
+
+            // All parameters of this POST request
+            string username = request.Form["user[username]"].ToString();
+            string email = request.Form["user[user_email]"].ToString();
+            string password = request.Form["user[password]"].ToString();
+            bool check = Int32.Parse(request.Form["check"].ToString()) == 1;
+
+            Dictionary<string, List<string>> errors = new() { 
+                ["username"] = new(),
+                ["user_email"] = new(),
+                ["password"] = new()
+            };
+
+            // Trim leading and trailing whitespace (to avoid confusion)
+            username = username.Trim();
+
+            // Username cannot be empty or bigger than 15 characters
+            if (username.Length == 0 || username.Length > 15)
+            {
+                errors["username"].Add("Username must be 1-15 characters.");
+            }
+
+            // Username must be alphanumeric
+            string nonalphanumericRegex = "[^a-zA-Z0-9 -]";
+            if (Regex.IsMatch(username, nonalphanumericRegex))
+            {
+                errors["username"].Add("Username must be alphanumeric.");
+            }
+
+            // Usernames must be unique
+            if (errors["username"].Count == 0)
+            {
+                DbAccount? existingAccount = await accountTable.FetchOneAsync(new DbClause("WHERE", "username = @username", new() { ["username"] = username }));
+                if (existingAccount != null)
+                {
+                    errors["username"].Add("Username has already been taken.");
+                }
+            }
+
+            // E-mail must be in a valid format
+            const string emailRegex = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+            if (email.Length == 0 || !Regex.IsMatch(email, emailRegex) || email.Length > 50)
+            {
+                errors["user_email"].Add("E-mail must be valid.");
+            }
+
+            // E-mails must be unique
+            if (errors["user_email"].Count == 0)
+            {
+                DbAccount? existingAccount = await accountTable.FetchOneAsync(new DbClause("WHERE", "email = @email", new() { ["email"] = email }));
+                if (existingAccount != null)
+                {
+                    errors["user_email"].Add("E-mail has already been used for an existing account.");
+                }
+            }
+
+            // Passwords need to be at least 8 characters
+            if (password.Length < 8 || password.Length > 50)
+            {
+                errors["password"].Add("Password must be 8-50 characters.");
+            }
+
+            // Determine whether or we encountered errors
+            bool hadErrors = false;
+            foreach (var entry in errors)
+            {
+                if (entry.Value.Count > 0)
+                {
+                    hadErrors = true;
+                    break;
+                }
+            }
+
+            // Send back errors with the user's input
+            if (hadErrors) {
+                Dictionary<string, string[]> jsonErrors = new();
+                foreach (var entry in errors)
+                {
+                    if (entry.Value.Count > 0) 
+                        jsonErrors[entry.Key] = new string[] { string.Join("\n", entry.Value) };
+                }
+
+                var formErrors = new
+                {
+                    form_error = new
+                    {
+                        user = jsonErrors
+                    }
+                };
+
+                response.StatusCode = 400;
+                await response.WriteAsJsonAsync(formErrors);
+
+                return Results.BadRequest();
+            }
+
+            // Client wants to create an account, not check inputs
+            if (!check)
+            {
+                Console.WriteLine($" - New account registration from {GetRequestIP(context)} - ");
+                Console.WriteLine($"Registering new account {username}...");
+
+                // Passwords must be hashed with MD5 beforehand due to osu! hashing passwords on sign-in
+                string passwordMd5 = HashUtil.MD5HashAsUTF8(password);
+
+                // Hash the password's md5 with bcrypt
+                string passwordBcrypt = BCrypt.Net.BCrypt.HashPassword(passwordMd5);
+
+                // Register the account
+                DbAccount toInsert = new(username, email, passwordBcrypt);
+                int accountId = await accountTable.InsertAsync(toInsert);
+                Console.WriteLine($"Created new account {username} with ID {accountId}!");
+
+                // TODO: set the account's geolocation based on their registration IP
+            }
+
+            return Results.Ok();
         }
 
         private string GetRequestIP(HttpContext context)

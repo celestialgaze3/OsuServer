@@ -8,18 +8,53 @@
                 optional: false,
                 reloadOnChange: true).Build();
 
-        public static string Domain { 
+        public static string DatabaseName
+        {
+            get
+            {
+                return Config.GetSection("database").TryGetValue<string>("name");
+            }
+        }
+
+        public static string DatabasePassword
+        {
+            get
+            {
+                return Config.GetSection("database").TryGetValue<string>("password");
+            }
+        }
+
+        public static string DatabaseUsername
+        {
+            get
+            {
+                return Config.GetSection("database").TryGetValue<string>("username");
+            }
+        }
+
+        public static string DatabaseServerIP
+        {
+            get
+            {
+                return Config.GetSection("database").TryGetValue<string>("ip");
+            }
+        }
+
+        public static string Domain
+        {
             get
             {
                 return Config.TryGetValue<string>("domain");
             }
         }
+
         public static string ClientSecret { 
             get
             {
                 return Config.GetSection("osuApi").TryGetValue<string>("clientSecret");
             }
         }
+
         public static int ClientId { 
             get
             {
