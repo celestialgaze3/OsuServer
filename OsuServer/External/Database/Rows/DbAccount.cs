@@ -5,35 +5,31 @@ namespace OsuServer.External.Database.Rows
 {
     public class DbAccount : DbRow
     {
-        public int Id { get; private set; }
-        public string Username { get; set; }
-        public string Email { get; set; }
-        public string Password { get; set; }
+        public DbColumn<int> Id { get; private set; }
+        public DbColumn<string> Username { get; set; }
+        public DbColumn<string> Email { get; set; }
+        public DbColumn<string> Password { get; set; }
+        public DbColumn<long> RegistrationTime { get; set; }
+        public DbColumn<long> LastActivityTime { get; set; }
 
-        public DbAccount(string username, string email, string password)
+        public DbAccount(int id, string username, string email, string password, long registrationTime, long lastActivityTime)
         {
-            Username = username;
-            Email = email;
-            Password = password;
+            Id = new("id", id, false);
+            Username = new("username", username);
+            Email = new("email", email);
+            Password = new("password", password);
+            RegistrationTime = new("registration_time", registrationTime);
+            LastActivityTime = new("last_activity_time", lastActivityTime);
         }
 
-        public DbAccount(int id, string username, string email, string password)
+        public override DbColumn[] GetColumns()
         {
-            Id = id;
-            Username = username;
-            Email = email;
-            Password = password;
+            return [Id, Username, Email, Password, RegistrationTime, LastActivityTime];
         }
 
-        public override Dictionary<string, object?> GetInsertionArguments()
+        public override DbColumn[] GetIdentifyingColumns()
         {
-            return new()
-            {
-                ["id"] = null,
-                ["username"] = Username,
-                ["email"] = Email,
-                ["password"] = Password
-            };
+            return [Id];
         }
     }
 }

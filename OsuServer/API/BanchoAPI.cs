@@ -66,6 +66,23 @@ namespace OsuServer.API
                 return Results.Ok();
             }
 
+            // Get the stored row of this user's account
+            DbAccountTable accountTable = new(Bancho.DatabaseConnection);
+            DbAccount? dbAccount = await accountTable.FetchOneAsync(new DbClause("WHERE", "id = @id", new() { ["id"] = player.Id }));
+
+            if (dbAccount == null)
+            {
+                Console.WriteLine("User seems to be signed into an account that does not exist? Telling client to reconnect.");
+                player.Connection.AddPendingPacket(new ReconnectPacket(1, osuToken, Bancho));
+                await response.Body.WriteAsync(player.Connection.FlushPendingPackets());
+
+                return Results.Ok();
+            }
+
+            // Update the user's last activity time
+            dbAccount.LastActivityTime.Value = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            await accountTable.UpdateOneAsync(dbAccount);
+
             Console.WriteLine("Requester is logged in with token " + osuToken);
 
             /* Note: The issue with sending pending packets only on a client ping is that the client will not receive 
@@ -147,7 +164,7 @@ namespace OsuServer.API
             );
 
             // Ensure account exists and password matches
-            if (account == null || !BCrypt.Net.BCrypt.Verify(loginData.Password, account.Password))
+            if (account == null || !BCrypt.Net.BCrypt.Verify(loginData.Password, account.Password.Value))
             {
                 response.Headers.Append("cho-token", "incorrect-credentials");
                 Connection failedConnection = Bancho.TokenlessConnection("incorrect-credentials");
@@ -166,7 +183,7 @@ namespace OsuServer.API
 
             // Create a connection and player instances for this client
             Connection connection = Bancho.CreateConnection(osuToken);
-            Player player = Bancho.CreatePlayer(account.Id, connection, loginData);
+            Player player = Bancho.CreatePlayer(account.Id.Value, connection, loginData);
 
             // We now need to send packet information: starting with the protocol version. This is always 19.
             connection.AddPendingPacket(new ProtocolVersionPacket(19, osuToken, Bancho));
@@ -537,8 +554,11 @@ namespace OsuServer.API
                 // Hash the password's md5 with bcrypt
                 string passwordBcrypt = BCrypt.Net.BCrypt.HashPassword(passwordMd5);
 
+                // Save registration time
+                long registrationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
                 // Register the account
-                DbAccount toInsert = new(username, email, passwordBcrypt);
+                DbAccount toInsert = new(-1, username, email, passwordBcrypt, registrationTime, registrationTime);
                 int accountId = await accountTable.InsertAsync(toInsert);
                 Console.WriteLine($"Created new account {username} with ID {accountId}!");
 
