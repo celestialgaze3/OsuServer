@@ -7,10 +7,11 @@ namespace OsuServer.External.Database
     {
         public DbAccountTable Account { get; set; } = new(connection);
         public DbProfileStatsTable ProfileStats { get; set; } = new(connection);
+        public DbScoreTable Score { get; set; } = new(connection);
 
         public override DbTable[] GetTables()
         {
-            return [Account, ProfileStats];
+            return [Account, ProfileStats, Score];
         }
     }
 }

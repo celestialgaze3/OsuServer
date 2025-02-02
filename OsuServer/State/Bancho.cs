@@ -14,16 +14,16 @@ namespace OsuServer.State
 
         public OsuServerDb Database { get; private set; }
 
-        private Dictionary<string, int> _tokenToPlayerId = new();
-        private Dictionary<string, int> _nameToPlayerId = new();
-        private Dictionary<string, int> _usernamePasswordMD5ToPlayerId = new(); // For identifying players from submitted scores
-        private Dictionary<int, Player> _playerIdToPlayer = new();
-        private Dictionary<string, Connection> _tokenToConnection = new();
+        private Dictionary<string, int> _tokenToPlayerId = [];
+        private Dictionary<string, int> _nameToPlayerId = [];
+        private Dictionary<string, int> _usernamePasswordMD5ToPlayerId = []; // For identifying players from submitted scores
+        private Dictionary<int, Player> _playerIdToPlayer = [];
+        private Dictionary<string, Connection> _tokenToConnection = [];
 
-        private Dictionary<string, Channel> _nameToChannel = new();
+        private Dictionary<string, Channel> _nameToChannel = [];
 
-        private Dictionary<int, BanchoBeatmap> _beatmapIdToBeatmap = new();
-        private Dictionary<string, int> _beatmapMD5ToBeatmapId = new();
+        private Dictionary<int, BanchoBeatmap> _beatmapIdToBeatmap = [];
+        private Dictionary<string, int> _beatmapMD5ToBeatmapId = [];
 
         public Bancho(OsuServerDb database, string name)
         {
@@ -95,6 +95,29 @@ namespace OsuServer.State
 
             _beatmapMD5ToBeatmapId.Add(beatmapMD5, id);
             _beatmapIdToBeatmap.Add(id, beatmap);
+
+            return beatmap;
+        }
+
+        public async Task<BanchoBeatmap> GetBeatmap(int beatmapId)
+        {
+            // Retrieve from cache if it already exists
+            if (_beatmapIdToBeatmap.ContainsKey(beatmapId))
+            {
+                return _beatmapIdToBeatmap[beatmapId];
+            }
+
+            // Query osu! API for beatmap information
+            BeatmapLookupResponse response = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(null, null, beatmapId.ToString()));
+            string? beatmapMD5 = response.BeatmapExtended.Checksum;
+
+            BanchoBeatmap beatmap = new BanchoBeatmap(this, response.BeatmapExtended);
+
+            if (beatmapMD5 != null)
+            {
+                _beatmapMD5ToBeatmapId.Add(beatmapMD5, beatmapId);
+            }
+            _beatmapIdToBeatmap.Add(beatmapId, beatmap);
 
             return beatmap;
         }

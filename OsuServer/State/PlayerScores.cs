@@ -1,4 +1,7 @@
-﻿using OsuServer.Objects;
+﻿using OsuServer.External.Database;
+using OsuServer.External.Database.Rows;
+using OsuServer.External.OsuV2Api;
+using OsuServer.Objects;
 
 namespace OsuServer.State
 {
@@ -13,19 +16,12 @@ namespace OsuServer.State
             _bancho = bancho;
 
             _scoreIds = [];
-            /*
-            ScoreIds = new List<int>();
-
-            // Sort top plays in reverse order (biggest values first)
-            TopPlays = new SortedSet<int>(
-                
-            );*/
         }
 
-        public float CalculatePerformancePoints()
+        public double CalculatePerformancePoints()
         {
             int totalPasses = 0;
-            float totalPP = 0.0f;
+            double totalPP = 0.0f;
             for (int i = 0; i < _scoreIds.Count; i++) 
             {
                 int id = _scoreIds[i];
@@ -39,17 +35,17 @@ namespace OsuServer.State
 
                 if (!score.Passed) continue;
 
-                totalPP += (float)(score.PerformancePoints * Math.Pow(0.95f, totalPasses));
+                totalPP += (double)(score.Beatmap.CalculatePerformancePoints(score) * Math.Pow(0.95f, totalPasses));
                 totalPasses++;
             }
 
             return totalPP;
         }
 
-        public float CalculateAccuracy()
+        public double CalculateAccuracy()
         {
             int totalPasses = 0;
-            float totalAccuracyWeighted = 0.0f;
+            double totalAccuracyWeighted = 0.0f;
 
             for (int i = 0; i < _scoreIds.Count; i++)
             {
@@ -63,11 +59,11 @@ namespace OsuServer.State
 
                 if (!score.Passed) continue;
 
-                totalAccuracyWeighted += (float)(score.CalculateAccuracy() * Math.Pow(0.95f, totalPasses));
+                totalAccuracyWeighted += (double)(score.CalculateAccuracy() * Math.Pow(0.95d, totalPasses));
                 totalPasses++;
             }
 
-            return (float)(totalAccuracyWeighted * (1.0f / (20f * (1f - Math.Pow(0.95f, totalPasses)))));
+            return (double)(totalAccuracyWeighted * (1.0d / (20d * (1d - Math.Pow(0.95d, totalPasses)))));
         }
 
         /// <summary>
@@ -87,7 +83,8 @@ namespace OsuServer.State
                 if (secondScore == null)
                     return -1;
 
-                return secondScore.PerformancePoints.CompareTo(firstScore.PerformancePoints);
+                return secondScore.Beatmap.CalculatePerformancePoints(secondScore)
+                    .CompareTo(firstScore.Beatmap.CalculatePerformancePoints(firstScore));
             }));
         }
 

@@ -1,4 +1,5 @@
-﻿using OsuServer.State;
+﻿using OsuServer.External.Database.Rows;
+using OsuServer.State;
 using OsuServer.Util;
 using System.Reflection.Metadata;
 using System.Security.Cryptography;
@@ -22,10 +23,11 @@ namespace OsuServer.Objects
         public bool Passed { get; private set; }
         public GameMode GameMode { get; private set; }
 
-        // TODO: Possibly add Beatmap and Player reference?
+        public Player Player { get; private set; }
+        public BanchoBeatmap Beatmap { get; private set; }
 
         public Score(int perfects, int goods, int bads, int gekis, int katus, int misses, int totalScore, int maxCombo, bool perfectCombo,
-            Grade grade, Mods mods, bool passed, GameMode gameMode)
+            Grade grade, Mods mods, bool passed, GameMode gameMode, Player player, BanchoBeatmap beatmap)
         {
             Perfects = perfects;
             Goods = goods;
@@ -40,11 +42,42 @@ namespace OsuServer.Objects
             Mods = mods;
             Passed = passed;
             GameMode = gameMode;
+            Player = player;
+            Beatmap = beatmap;
         }
 
-        public float CalculateAccuracy()
+        public static async Task<Score> Get(Bancho bancho, DbScore dbScore)
         {
-            return (float) (Perfects * 300 + Goods * 100 + Bads * 50) / ((Perfects + Goods + Bads + Misses) * 300);
+            GameMode gameMode = (GameMode)dbScore.GameMode.Value;
+            Mods mods = new Mods(dbScore.Mods.Value);
+            int perfects = dbScore.Perfects.Value;
+            int goods = dbScore.Goods.Value;
+            int bads = dbScore.Bads.Value;
+            int misses = dbScore.Misses.Value;
+            bool isPass = dbScore.IsPass.Value;
+
+            return new Score(
+                perfects,
+                goods,
+                bads,
+                misses,
+                dbScore.Katus.Value,
+                dbScore.Misses.Value,
+                dbScore.TotalScore.Value,
+                dbScore.MaxCombo.Value,
+                dbScore.IsPerfectCombo.Value,
+                CalculateGrade(gameMode, mods, perfects, goods, bads, misses, isPass),
+                mods,
+                isPass,
+                gameMode,
+                bancho.GetPlayer((int)dbScore.AccountId.Value),
+                await bancho.GetBeatmap((int)dbScore.BeatmapId.Value)
+            );
+        }
+
+        public double CalculateAccuracy()
+        {
+            return (double) (Perfects * 300 + Goods * 100 + Bads * 50) / ((Perfects + Goods + Bads + Misses) * 300);
         }
 
         public string CalculateChecksum(string beatmapMD5, string playerName, string osuVersion, string clientTime, string clientHash, string storyboardChecksum)
@@ -87,6 +120,70 @@ namespace OsuServer.Objects
             Console.WriteLine($"BYTES: [{Convert.ToHexStringLower(Encoding.Unicode.GetBytes(prehash))}]");
 
             return HashUtil.MD5HashAsUTF8(prehash);
+        }
+
+        public static Grade CalculateGrade(GameMode gameMode, Mods mods, int perfects, int goods, int bads, int misses, bool passed)
+        {
+            if (!passed) 
+                return Grade.F;
+
+            if (gameMode.WithoutMods() == GameMode.Standard)
+            {
+                int totalObjects = perfects + goods + bads + misses;
+                double percentPerfect = (double)perfects / totalObjects;
+
+                // SS
+                if (perfects == totalObjects)
+                {
+                    if (mods.Has(Mod.Hidden) || mods.Has(Mod.Flashlight))
+                        return Grade.XH;
+                    return Grade.X;
+                }
+
+                if (percentPerfect >= 0.9d)
+                {
+                    // S
+                    if ((double)bads / totalObjects <= 0.01d && misses == 0)
+                    {
+                        if (mods.Has(Mod.Hidden) || mods.Has(Mod.Flashlight))
+                            return Grade.SH;
+                        return Grade.S;
+                    }
+
+                    // A
+                    return Grade.A;
+                }
+
+                if (percentPerfect >= 0.8d)
+                {
+                    // A
+                    if (misses == 0)
+                    {
+                        return Grade.A;
+                    }
+
+                    // B
+                    return Grade.B;
+                }
+
+                // B
+                if (percentPerfect >= 0.7d && misses == 0)
+                {
+                    return Grade.B;
+                }
+
+                // C
+                if (percentPerfect >= 0.6d)
+                {
+                    return Grade.C;
+                }
+
+                return Grade.D;
+
+            }
+
+            // TODO: implement grade calculations for other gamemodes
+            return Grade.None;
         }
     }
 }

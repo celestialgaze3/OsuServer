@@ -47,8 +47,8 @@ namespace OsuServer.API
                 UpdatedValue("rankedScore", _oldScore.TotalScore, _newScore.TotalScore),
                 UpdatedValue("totalScore", _oldScore.TotalScore, _newScore.TotalScore),
                 UpdatedValue("maxCombo", _oldScore.Combo, _newScore.Combo),
-                UpdatedValue("accuracy", _oldScore.Accuracy * 100f, _newScore.Accuracy * 100f),
-                UpdatedValue("pp", (float) Math.Round(_oldScore.PerformancePoints), (float) Math.Round(_newScore.PerformancePoints)),
+                UpdatedValue("accuracy", (float)_oldScore.Accuracy * 100f, (float)_newScore.Accuracy * 100f),
+                UpdatedValue("pp", (float)Math.Round(_oldScore.PerformancePoints), (float)Math.Round(_newScore.PerformancePoints)),
                 $"onlineScoreId:{_bancho.Scores.GetByChecksum(scoreChecksum)}",
                 "\n",
                 $"chartId:overall",
@@ -58,8 +58,8 @@ namespace OsuServer.API
                 UpdatedValue("rankedScore", _oldStats.RankedScore, _newStats.RankedScore),
                 UpdatedValue("totalScore", _oldStats.TotalScore, _newStats.TotalScore),
                 UpdatedValue("maxCombo", _oldStats.MaxCombo, _newStats.MaxCombo),
-                UpdatedValue("accuracy", (float) _oldStats.Accuracy * 100f, (float) _newStats.Accuracy * 100f),
-                UpdatedValue("pp", (float) Math.Round(_oldStats.PP), (float) Math.Round(_newStats.PP)),
+                UpdatedValue("accuracy", (float)_oldStats.Accuracy * 100f, (float)_newStats.Accuracy * 100f),
+                UpdatedValue("pp", (float)Math.Round(_oldStats.PP), (float)Math.Round(_newStats.PP)),
                 $"achievements-new:" // TODO: achievements
             ];
             return string.Join("|", report);

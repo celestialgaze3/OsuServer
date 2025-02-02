@@ -29,7 +29,6 @@ namespace OsuServer.External.OsuV2Api
             UserId = (int) json["user_id"];
             Version = (string) json["version"];
 
-            // Dont care
             BeatmapSet = new BeatmapSet(json["beatmapset"]);
             Checksum = (string?) json["checksum"];
             //FailTimes = failTimes;

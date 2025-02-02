@@ -4,12 +4,12 @@ namespace OsuServer.Objects
 {
     public class ScoreStats
     {
-        public float PerformancePoints { get; set; } = 0.0f;
+        public double PerformancePoints { get; set; } = 0.0f;
         public int TotalScore { get; set; } = 0;
         public int Combo { get; set; } = 0;
-        public float Accuracy { get; set; } = 0.0f;
+        public double Accuracy { get; set; } = 0.0f;
 
-        public ScoreStats(int performancePoints, int score, int combo, float accuracy)
+        public ScoreStats(double performancePoints, int score, int combo, double accuracy)
         {
             PerformancePoints = performancePoints;
             TotalScore = score;
@@ -23,7 +23,7 @@ namespace OsuServer.Objects
         /// <param name="score">The score to copy stats from</param>
         public ScoreStats(SubmittedScore score)
         {
-            PerformancePoints = score.PerformancePoints;
+            PerformancePoints = score.Beatmap.CalculatePerformancePoints(score);
             TotalScore = score.TotalScore;
             Combo = score.MaxCombo;
             Accuracy = score.CalculateAccuracy();
@@ -59,9 +59,9 @@ namespace OsuServer.Objects
         {
             if (score == null) return;
 
-            if (PerformancePoints < score.PerformancePoints)
+            if (PerformancePoints < score.Beatmap.CalculatePerformancePoints(score))
             {
-                PerformancePoints = score.PerformancePoints;
+                PerformancePoints = score.Beatmap.CalculatePerformancePoints(score);
             }
 
             if (TotalScore < score.TotalScore)
@@ -74,7 +74,7 @@ namespace OsuServer.Objects
                 Combo = score.MaxCombo;
             }
 
-            float accuracy = score.CalculateAccuracy();
+            double accuracy = score.CalculateAccuracy();
             if (Accuracy < accuracy)
             {
                 Accuracy = accuracy;

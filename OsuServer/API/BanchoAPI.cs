@@ -172,7 +172,16 @@ namespace OsuServer.API
 
                 return Results.Ok();
             }
-            // TODO: disallow multiple sessions
+
+            // Disallow this player from logging in again
+            /* TODO: Timeout sessions. If a player's game crashes before sending the logout packet, 
+             * this will prevent a player from logging in again until a server restart. */
+            if (Bancho.GetPlayer(account.Id.Value) != null)
+            {
+                /* Sometimes the client will try to login again before the first login request is fully processed.
+                 * We don't need to do anything here. */
+                return Results.Ok();
+            }
 
             // We now need to send all of the information the client needs to be convinced it's fully connected.
 
@@ -361,7 +370,7 @@ namespace OsuServer.API
             }
 
             // Parse the data from the score submission
-            ScoreData scoreData = new ScoreData(scoreDataStr);
+            ScoreData scoreData = await ScoreData.GetInstance(Bancho, scoreDataStr);
 
             // Beatmap hash (again?)
             string beatmapMD5FromScore = scoreData.BeatmapMD5;
@@ -371,7 +380,9 @@ namespace OsuServer.API
             string username = scoreData.PlayerUsername;
             if (username.Last() == ' ') username = username.Substring(0, username.Length - 1);
 
-            // Get the player instance (since we don't have the osu-token) by the username passwordMD5 combination
+            /* Get the player instance (since we don't have the osu-token) by the username passwordMD5 combination
+             * We aren't just getting by username to prevent spoofed score submissions (while I'm not sure if that's 
+             * possible either way). */
             Player? player = Bancho.GetPlayer(username, passwordMD5);
 
             if (player == null)

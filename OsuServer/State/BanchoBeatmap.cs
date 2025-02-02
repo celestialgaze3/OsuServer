@@ -9,7 +9,8 @@ namespace OsuServer.State
         private Bancho _bancho;
         public BeatmapExtended Info { get; private set; }
 
-        private Dictionary<int, List<int>> _allScores = new();
+        private Dictionary<int, List<int>> _allScores = [];
+        private Dictionary<Score, double> _ppCache = [];
 
         public BanchoBeatmap(Bancho bancho, BeatmapExtended beatmap)
         {
@@ -31,6 +32,20 @@ namespace OsuServer.State
             // Calculate old best stats from existing scores
             ScoreStats oldBestStats = new ScoreStats(_bancho, _allScores[player.Id]);
             return oldBestStats;
+        }
+
+        public double CalculatePerformancePoints(Score score)
+        {
+            double pp;
+            if (_ppCache.TryGetValue(score, out pp))
+            {
+                return pp;
+            }
+
+            // TODO: proper performance points calculation
+            pp = score.Perfects;
+
+            return pp;
         }
     }
 }

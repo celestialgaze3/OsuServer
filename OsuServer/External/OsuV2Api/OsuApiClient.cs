@@ -1,9 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
-using OsuServer.External.OsuV2Api.Requests;
+﻿using OsuServer.External.OsuV2Api.Requests;
 using OsuServer.External.OsuV2Api.Responses;
 using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json.Serialization;
 
 namespace OsuServer.External.OsuV2Api
 {

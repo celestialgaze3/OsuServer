@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-
-namespace OsuServer.External.OsuV2Api
+﻿namespace OsuServer.External.OsuV2Api
 {
     public class Ruleset
     {

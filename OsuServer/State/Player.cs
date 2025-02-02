@@ -98,6 +98,7 @@ namespace OsuServer.State
         public async Task UpdateFromDb()
         {
             await Stats.UpdateFromDb();
+            await Bancho.Scores.UpdateFromDb(this);
         }
 
     }
