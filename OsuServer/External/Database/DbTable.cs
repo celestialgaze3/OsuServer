@@ -5,26 +5,18 @@ namespace OsuServer.External.Database
     public abstract class DbTable
     {
         protected string _schema;
+        protected DbInstance _database;
         protected MySqlConnection _connection;
         protected string _insertionReturnColumns;
         public string Name { get; private set; }
 
-        public DbTable(MySqlConnection connection, string name, string schema, string insertionReturnColumns = "")
+        public DbTable(DbInstance database, string name, string schema, string insertionReturnColumns = "")
         {
             _schema = schema;
-            _connection = connection;
+            _database = database;
+            _connection = database.MySqlConnection;
             _insertionReturnColumns = insertionReturnColumns;
             Name = name;
-        }
-
-        public async Task EnsureConnectionOpen()
-        {
-            if (_connection.State == System.Data.ConnectionState.Closed)
-            {
-                Console.WriteLine("Disconnected from MySQL database. Reconnecting...");
-                await _connection.OpenAsync();
-                Console.WriteLine("Complete!");
-            }
         }
 
         /// <summary>
@@ -33,7 +25,7 @@ namespace OsuServer.External.Database
         /// <returns>Whether or not the table exists</returns>
         public async Task<bool> CheckExistsAsync()
         {
-            await EnsureConnectionOpen();
+            await _database.EnsureConnectionOpen();
 
             var command = new MySqlCommand("SELECT count(*) " +
                 "FROM information_schema.tables " +
@@ -53,7 +45,7 @@ namespace OsuServer.External.Database
         /// <returns>A task representing the asynchronous operation</returns>
         public virtual async Task<int> CreateTableAsync()
         {
-            await EnsureConnectionOpen();
+            await _database.EnsureConnectionOpen();
 
             var command = new MySqlCommand($"CREATE TABLE IF NOT EXISTS {Name} ({_schema});", _connection);
             LogSqlCommand(command);
@@ -68,8 +60,8 @@ namespace OsuServer.External.Database
 
     public abstract class DbTable<T, U> : DbTable where T : DbRow
     {
-        public DbTable(MySqlConnection connection, string name, string schema, string insertionReturnColumns = "")
-            : base(connection, name, schema, insertionReturnColumns)
+        public DbTable(DbInstance database, string name, string schema, string insertionReturnColumns = "")
+            : base(database, name, schema, insertionReturnColumns)
         { }
 
         /// <summary>
@@ -79,19 +71,22 @@ namespace OsuServer.External.Database
         /// <returns>The first <typeparamref name="T"/> returned by the database, or null if none was found</returns>
         public async Task<T?> FetchOneAsync(params DbClause[] clauses)
         {
-            await EnsureConnectionOpen();
+            await _database.EnsureConnectionOpen();
 
             var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+            
+            if (_database.Transaction != null)
+                command.Transaction = _database.Transaction;
 
             foreach (var clause in clauses)
             {
                 clause.AddParameters(command);
             }
 
+            LogSqlCommand(command);
             await command.PrepareAsync();
 
-            LogSqlCommand(command);
-            using (MySqlDataReader reader = await command.ExecuteReaderAsync())
+            await using(MySqlDataReader reader = await command.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
                 {
@@ -109,20 +104,23 @@ namespace OsuServer.External.Database
         /// <returns>A list of all matching <typeparamref name="T"/></returns>
         public async Task<List<T>> FetchManyAsync(params DbClause[] clauses)
         {
-            await EnsureConnectionOpen();
+            await _database.EnsureConnectionOpen();
 
             List<T> rows = new();
             var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+            
+            if (_database.Transaction != null)
+                command.Transaction = _database.Transaction;
 
             foreach (var clause in clauses)
             {
                 clause.AddParameters(command);
             }
 
+            LogSqlCommand(command);
             await command.PrepareAsync();
 
-            LogSqlCommand(command);
-            using (MySqlDataReader reader = await command.ExecuteReaderAsync())
+            await using(MySqlDataReader reader = await command.ExecuteReaderAsync())
             {
                 while (await reader.ReadAsync())
                 {
@@ -140,24 +138,27 @@ namespace OsuServer.External.Database
         /// <returns>Information about the insertion of type <typeparamref name="U"/></returns>
         public async Task<U> InsertAsync(T insertion)
         {
-            await EnsureConnectionOpen();
+            await _database.EnsureConnectionOpen();
 
             Dictionary<string, object?> insertionArguments = insertion.GetInsertionArguments();
-            string columnNames = string.Join(",", insertionArguments.Select(entry => entry.Key));
-            string valueNames = string.Join(",", insertionArguments.Select(entry => $"@{entry.Key}"));
+            string columnNames = string.Join(", ", insertionArguments.Select(entry => entry.Key));
+            string valueNames = string.Join(", ", insertionArguments.Select(entry => $"@{entry.Key}"));
 
             var command = new MySqlCommand($"INSERT INTO {Name}({columnNames}) VALUES ({valueNames})" +
                 (_insertionReturnColumns.Length > 0 ? $" RETURNING {_insertionReturnColumns}" : ""), _connection);
+
+            if (_database.Transaction != null)
+                command.Transaction = _database.Transaction;
 
             foreach (var entry in insertionArguments)
             {
                 command.Parameters.AddWithValue($"@{entry.Key}", entry.Value);
             }
 
+            LogSqlCommand(command);
             await command.PrepareAsync();
 
-            LogSqlCommand(command);
-            using (MySqlDataReader reader = await command.ExecuteReaderAsync())
+            await using (MySqlDataReader reader = await command.ExecuteReaderAsync())
             {
                 U insertionResult = await ReadInsertion(reader);
                 return insertionResult;
@@ -172,7 +173,7 @@ namespace OsuServer.External.Database
         /// <returns>A task representing the asynchronous operation</returns>
         public async Task UpdateAsync(T insertion, params DbClause[] clauses)
         {
-            await EnsureConnectionOpen();
+            await _database.EnsureConnectionOpen();
 
             Dictionary<string, object?> updateArguments = insertion.GetUpdateArguments();
             DbClause setClause = new(
@@ -191,6 +192,9 @@ namespace OsuServer.External.Database
                 _connection
             );
 
+            if (_database.Transaction != null)
+                command.Transaction = _database.Transaction;
+
             // Combine parameters 
             Dictionary<string, object?> combinedParams = [];
             foreach (var entry in updateArguments)
@@ -207,9 +211,9 @@ namespace OsuServer.External.Database
                 command.Parameters.AddWithValue(parameter.Key, parameter.Value);
             }
 
+            LogSqlCommand(command);
             await command.PrepareAsync();
 
-            LogSqlCommand(command);
             await command.ExecuteNonQueryAsync();
         }
 

@@ -1,5 +1,6 @@
 ﻿using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
+using System.Numerics;
 using static OsuServer.State.BanchoBeatmap;
 
 namespace OsuServer.State
@@ -31,7 +32,25 @@ namespace OsuServer.State
 
             // Calculate old best stats from existing scores
             ScoreStats oldBestStats = new ScoreStats(_bancho, _allScores[player.Id]);
+
+            // Add this score to the beatmap score listing
+            _allScores[player.Id].Add(score.Id);
+
             return oldBestStats;
+        }
+
+        /// <summary>
+        /// Adds a score to this beatmap without affecting state
+        /// </summary>
+        /// <param name="player">The player that set the score</param>
+        /// <param name="score">The score to add</param>
+        public void AddScore(Player player, SubmittedScore score)
+        {
+            if (!_allScores.ContainsKey(player.Id))
+                _allScores.Add(player.Id, new List<int>());
+
+            if (!_allScores[player.Id].Contains(score.Id))
+                _allScores[player.Id].Add(score.Id);
         }
 
         public double CalculatePerformancePoints(Score score)

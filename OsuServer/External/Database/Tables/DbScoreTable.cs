@@ -3,8 +3,8 @@ using OsuServer.External.Database.Rows;
 
 namespace OsuServer.External.Database.Tables
 {
-    public class DbScoreTable(MySqlConnection connection) : DbTable<DbScore, int>(
-        connection,
+    public class DbScoreTable(DbInstance database) : DbTable<DbScore, int>(
+        database,
         "Score",
         @"id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         account_id INT UNSIGNED NOT NULL,
@@ -22,6 +22,10 @@ namespace OsuServer.External.Database.Tables
         is_pass BOOLEAN NOT NULL DEFAULT 0,
         gamemode TINYINT UNSIGNED NOT NULL DEFAULT 0,
         pp DOUBLE NOT NULL DEFAULT 0,
+        is_best_pp BOOLEAN NOT NULL DEFAULT 0,
+        is_best_accuracy BOOLEAN NOT NULL DEFAULT 0,
+        is_best_combo BOOLEAN NOT NULL DEFAULT 0,
+        is_best_score BOOLEAN NOT NULL DEFAULT 0,
 
         PRIMARY KEY(id),
         CONSTRAINT FK_score_account FOREIGN KEY (account_id) REFERENCES Account(id)",
@@ -46,7 +50,11 @@ namespace OsuServer.External.Database.Tables
                 reader.GetInt32(12),
                 reader.GetBoolean(13),
                 reader.GetByte(14),
-                reader.GetDouble(15)
+                reader.GetDouble(15),
+                reader.GetBoolean(16),
+                reader.GetBoolean(17),
+                reader.GetBoolean(18),
+                reader.GetBoolean(19)
             );
         }
 

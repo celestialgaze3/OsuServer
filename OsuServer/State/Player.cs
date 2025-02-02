@@ -1,5 +1,6 @@
 ﻿using OsuServer.API;
 using OsuServer.API.Packets.Server;
+using OsuServer.External.Database;
 using OsuServer.Objects;
 
 namespace OsuServer.State
@@ -89,16 +90,16 @@ namespace OsuServer.State
             return Friends.Contains(player.Id);
         }
 
-        public async Task UpdateWithScore(SubmittedScore score)
+        public async Task UpdateWithScore(OsuServerDb database, SubmittedScore score)
         {
-            Scores.Add(score);
-            await Stats.UpdateWith(score);
+            Scores.Add(score, true);
+            await Stats.UpdateWith(database, score);
         }
 
-        public async Task UpdateFromDb()
+        public async Task UpdateFromDb(OsuServerDb database)
         {
-            await Stats.UpdateFromDb();
-            await Bancho.Scores.UpdateFromDb(this);
+            await Stats.UpdateFromDb(database);
+            await Bancho.Scores.UpdateFromDb(database, this);
         }
 
     }

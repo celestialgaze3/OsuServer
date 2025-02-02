@@ -1,5 +1,6 @@
 ﻿using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
+using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 
 namespace OsuServer.State
@@ -16,24 +17,24 @@ namespace OsuServer.State
         {
             _bancho = bancho;
         }
-        public async Task<SubmittedScore> Submit(Player player, Score score, string scoreChecksum)
+        public async Task<SubmittedScore> Submit(OsuServerDb database, Player player, Score score, string scoreChecksum)
         {
             if (IsSubmitted(scoreChecksum)) 
                 return _idToScore[_checksumToId[scoreChecksum]];
 
-            DbScore dbScore = new(0, score);
+            await database.StartTransaction();
+            DbScore dbScore = await DbScore.PrepareInsertion(database, score);
 
-            int assignedScoreId = await _bancho.Database.Score.InsertAsync(dbScore);
+            int assignedScoreId = await database.Score.InsertAsync(dbScore);
+            await database.CommitTransaction();
+
             SubmittedScore submittedScore = new(score, assignedScoreId);
             _idToScore.Add(assignedScoreId, submittedScore);
-
             _idToChecksum.Add(assignedScoreId, scoreChecksum);
             _checksumToId.Add(scoreChecksum, assignedScoreId);
 
-            // TODO: PP indexing for fast global top plays retrieval (when database is integrated)
-
             // Update the player's state based on this score
-            await player.UpdateWithScore(submittedScore);
+            await player.UpdateWithScore(database, submittedScore);
 
             return submittedScore;
         }
@@ -43,10 +44,14 @@ namespace OsuServer.State
         /// </summary>
         /// <param name="player">The player to get the scores from</param>
         /// <returns></returns>
-        public async Task UpdateFromDb(Player player)
+        public async Task UpdateFromDb(OsuServerDb database, Player player)
         {
-            List<DbScore> scores = await _bancho.Database.Score.FetchManyAsync(
-                new DbClause("WHERE", "account_id = @account_id", new() { ["account_id"] = player.Id }),
+            List<DbScore> scores = await database.Score.FetchManyAsync(
+                new DbClause(
+                    "WHERE", 
+                    "account_id = @account_id AND is_best_pp = 1", 
+                    new() { ["account_id"] = player.Id }
+                ),
                 new DbClause("ORDER BY", "pp"),
                 new DbClause("LIMIT", "500")
             );
@@ -57,10 +62,12 @@ namespace OsuServer.State
                 int id = (int) dbScore.Id.Value;
                 SubmittedScore submittedScore = new SubmittedScore(score, id);
 
-                _idToScore.Add(id, submittedScore);
+                _idToScore[id] = submittedScore;
+                score.Beatmap.AddScore(player, submittedScore);
                 player.Scores.Add(submittedScore);
             }
 
+            player.Scores.SortTopPlays();
             Console.WriteLine($"Loaded {scores.Count} top plays");
         }
 
@@ -85,6 +92,11 @@ namespace OsuServer.State
             if (_idToScore.TryGetValue(id, out result)) 
                 return result;
             return null;
+        }
+
+        public bool TryGetById(int id, out SubmittedScore result)
+        {
+            return _idToScore.TryGetValue(id, out result);
         }
 
         public SubmittedScore? GetByChecksum(string scoreChecksum)

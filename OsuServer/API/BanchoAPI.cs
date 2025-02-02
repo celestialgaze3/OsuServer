@@ -27,6 +27,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandlePackets(HttpContext context)
         {
+            OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -67,7 +68,7 @@ namespace OsuServer.API
             }
 
             // Get the stored row of this user's account
-            DbAccountTable accountTable = Bancho.Database.Account;
+            DbAccountTable accountTable = database.Account;
             DbAccount? dbAccount = await accountTable.FetchOneAsync(new DbClause("WHERE", "id = @id", new() { ["id"] = player.Id }));
 
             if (dbAccount == null)
@@ -131,6 +132,7 @@ namespace OsuServer.API
 
         private async Task<IResult> HandleLogin(HttpContext context)
         {
+            OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -157,7 +159,7 @@ namespace OsuServer.API
 
             // Now we need to validate the login credentials
             // Get the account they are supposed to be signing into
-            DbAccountTable accountTable = Bancho.Database.Account;
+            DbAccountTable accountTable = database.Account;
             DbAccount? account = await accountTable.FetchOneAsync(
                 new DbClause("WHERE", "username = @username", new() { ["username"] = loginData.Username })
             );
@@ -191,7 +193,7 @@ namespace OsuServer.API
 
             // Create a connection and player instances for this client
             Connection connection = Bancho.CreateConnection(osuToken);
-            Player player = await Bancho.CreatePlayer(account.Id.Value, connection, loginData);
+            Player player = await Bancho.CreatePlayer(database, account.Id.Value, connection, loginData);
 
             // We now need to send packet information: starting with the protocol version. This is always 19.
             connection.AddPendingPacket(new ProtocolVersionPacket(19, osuToken, Bancho));
@@ -302,6 +304,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleScoreSubmission(HttpContext context)
         {
+            OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -419,7 +422,7 @@ namespace OsuServer.API
             BanchoBeatmap beatmap = await Bancho.GetBeatmap(beatmapMD5);
 
             // Update server state with this score
-            SubmittedScore submittedScore = await Bancho.Scores.Submit(player, scoreData.Score, scoreData.Checksum);
+            SubmittedScore submittedScore = await Bancho.Scores.Submit(database, player, scoreData.Score, scoreData.Checksum);
             ScoreStats oldBestStats = beatmap.UpdateWithScore(player, submittedScore);
 
             // Send data back to client
@@ -451,10 +454,11 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleAccountRegistration(HttpContext context)
         {
+            OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
-            DbAccountTable accountTable = Bancho.Database.Account;
+            DbAccountTable accountTable = database.Account;
 
             // All parameters of this POST request
             string username = request.Form["user[username]"].ToString();

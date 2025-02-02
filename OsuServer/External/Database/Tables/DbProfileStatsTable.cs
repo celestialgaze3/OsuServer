@@ -3,8 +3,8 @@ using OsuServer.External.Database.Rows;
 
 namespace OsuServer.External.Database.Tables
 {
-    public class DbProfileStatsTable(MySqlConnection connection) : DbTable<DbProfileStats, int>(
-        connection,
+    public class DbProfileStatsTable(DbInstance database) : DbTable<DbProfileStats, int>(
+        database,
         "ProfileStats",
         @"account_id INT UNSIGNED NOT NULL,
         total_score BIGINT NOT NULL DEFAULT 0,

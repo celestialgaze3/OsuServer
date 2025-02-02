@@ -77,7 +77,12 @@ namespace OsuServer.Objects
 
         public double CalculateAccuracy()
         {
-            return (double) (Perfects * 300 + Goods * 100 + Bads * 50) / ((Perfects + Goods + Bads + Misses) * 300);
+            return CalculateAccuracy(Perfects, Goods, Bads, Misses);
+        }
+
+        public static double CalculateAccuracy(int perfects, int goods, int bads, int misses)
+        {
+            return (double)(perfects * 300 + goods * 100 + bads * 50) / ((perfects + goods + bads + misses) * 300);
         }
 
         public string CalculateChecksum(string beatmapMD5, string playerName, string osuVersion, string clientTime, string clientHash, string storyboardChecksum)
@@ -115,9 +120,6 @@ namespace OsuServer.Objects
             sb.Append(storyboardChecksum.TrimEnd('\0'));
 
             string prehash = sb.ToString().TrimEnd('\0');
-
-            Console.WriteLine($"Prehash: [{prehash}]");
-            Console.WriteLine($"BYTES: [{Convert.ToHexStringLower(Encoding.Unicode.GetBytes(prehash))}]");
 
             return HashUtil.MD5HashAsUTF8(prehash);
         }

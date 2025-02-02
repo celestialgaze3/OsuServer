@@ -24,7 +24,7 @@ namespace OsuServer.State
             _profileStats = new ProfileStats();
         }
 
-        public async Task UpdateWith(SubmittedScore score)
+        public async Task UpdateWith(OsuServerDb database, SubmittedScore score)
         {
             // These stats are updated regardless of ranked status.
             _profileStats.Playcount += 1;
@@ -46,12 +46,12 @@ namespace OsuServer.State
             _profileStats.PP = _player.Scores.CalculatePerformancePoints();
             _profileStats.Accuracy = _player.Scores.CalculateAccuracy();
 
-            await SaveToDb();
+            await SaveToDb(database);
         }
 
-        public async Task<DbProfileStats?> GetDbRow()
+        public async Task<DbProfileStats?> GetDbRow(OsuServerDb database)
         {
-            DbProfileStatsTable profileStats = _player.Bancho.Database.ProfileStats;
+            DbProfileStatsTable profileStats = database.ProfileStats;
             return await profileStats.FetchOneAsync(
                 new DbClause(
                     "WHERE", 
@@ -61,9 +61,9 @@ namespace OsuServer.State
             );
         }
 
-        public async Task UpdateFromDb()
+        public async Task UpdateFromDb(OsuServerDb database)
         {
-            DbProfileStats? row = await GetDbRow();
+            DbProfileStats? row = await GetDbRow(database);
             if (row == null) return;
 
             _profileStats = new ProfileStats(
@@ -77,10 +77,10 @@ namespace OsuServer.State
             );
         }
 
-        public async Task SaveToDb()
+        public async Task SaveToDb(OsuServerDb database)
         {
-            DbProfileStatsTable table = _player.Bancho.Database.ProfileStats;
-            DbProfileStats? row = await GetDbRow();
+            DbProfileStatsTable table = database.ProfileStats;
+            DbProfileStats? row = await GetDbRow(database);
 
             if (row == null)
             {

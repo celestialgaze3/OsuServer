@@ -3,8 +3,8 @@ using OsuServer.External.Database.Rows;
 
 namespace OsuServer.External.Database.Tables
 {
-    public class DbAccountTable(MySqlConnection connection) : DbTable<DbAccount, int>(
-        connection,
+    public class DbAccountTable(DbInstance database) : DbTable<DbAccount, int>(
+        database,
         "Account",
         @"id INT UNSIGNED AUTO_INCREMENT,
         username VARCHAR(15) NOT NULL UNIQUE,
@@ -44,7 +44,7 @@ namespace OsuServer.External.Database.Tables
 
         protected override async Task<int> ReadInsertion(MySqlDataReader reader)
         {
-            await reader.ReadAsync();
+            await reader.ReadAsync().ConfigureAwait(false);
             return (int)reader.GetUInt32(0); // Returns id
         }
     }

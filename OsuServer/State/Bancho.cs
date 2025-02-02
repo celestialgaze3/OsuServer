@@ -12,8 +12,6 @@ namespace OsuServer.State
         public string Name { get; set; }
         public BanchoScores Scores { get; private set; }
 
-        public OsuServerDb Database { get; private set; }
-
         private Dictionary<string, int> _tokenToPlayerId = [];
         private Dictionary<string, int> _nameToPlayerId = [];
         private Dictionary<string, int> _usernamePasswordMD5ToPlayerId = []; // For identifying players from submitted scores
@@ -25,9 +23,8 @@ namespace OsuServer.State
         private Dictionary<int, BanchoBeatmap> _beatmapIdToBeatmap = [];
         private Dictionary<string, int> _beatmapMD5ToBeatmapId = [];
 
-        public Bancho(OsuServerDb database, string name)
+        public Bancho(string name)
         {
-            Database = database;
             Name = name;
             Scores = new BanchoScores(this);
 
@@ -64,12 +61,12 @@ namespace OsuServer.State
             return connection;
         }
 
-        public async Task<Player> CreatePlayer(int id, Connection connection, LoginData data)
+        public async Task<Player> CreatePlayer(OsuServerDb database, int id, Connection connection, LoginData data)
         {
             if (_tokenToPlayerId.ContainsKey(connection.Token)) return _playerIdToPlayer[_tokenToPlayerId[connection.Token]];
 
             Player player = new Player(id, this, connection, data);
-            await OnPlayerConnect(player);
+            await OnPlayerConnect(database, player);
             _tokenToPlayerId[connection.Token] = player.Id;
             _nameToPlayerId[player.Username] = player.Id;
             _playerIdToPlayer[player.Id] = player;
@@ -168,7 +165,7 @@ namespace OsuServer.State
             return _nameToChannel[name];
         }
 
-        public async Task OnPlayerConnect(Player player)
+        public async Task OnPlayerConnect(OsuServerDb database, Player player)
         {
             foreach(Player onlinePlayer in GetPlayers())
             {
@@ -181,7 +178,7 @@ namespace OsuServer.State
                 player.Connection.AddPendingPacket(new UserStatsPacket(onlinePlayer, player.Connection.Token, this));
             }
 
-            await player.UpdateFromDb();
+            await player.UpdateFromDb(database);
         }
 
         public void BroadcastUserUpdate(Player player)

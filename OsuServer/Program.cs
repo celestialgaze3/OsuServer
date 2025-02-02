@@ -9,26 +9,15 @@ namespace OsuServer
 {
     public class Program
     {
+        private static bool _tablesInitialized = false;
 
         public static Bancho s_Bancho;
         public static BanchoAPI s_BanchoEndpoint;
         public static OsuApiClient ApiClient { get; private set; }
         public static async Task Main(string[] args)
         {
-            Console.WriteLine("Connecting to MySQL...");
-            using var connection = new MySqlConnection($"Server={ServerConfiguration.DatabaseServerIP};" +
-                                                       $"User ID={ServerConfiguration.DatabaseUsername};" +
-                                                       $"Password={ServerConfiguration.DatabasePassword};" +
-                                                       $"Database={ServerConfiguration.DatabaseName}");
-            await connection.OpenAsync();
 
-
-            Console.WriteLine("Initializing tables...");
-            OsuServerDb database = new(connection);
-            await database.InitializeTables();
-            Console.WriteLine("Complete!");
-
-            s_Bancho = new Bancho(database, "Bancho");
+            s_Bancho = new Bancho("Bancho");
             s_BanchoEndpoint = new BanchoAPI(s_Bancho);
 
             ClientPacketHandler.RegisterPacketTypes();
@@ -65,8 +54,6 @@ namespace OsuServer
             app.MapPost("/users", async (HttpContext context) => await s_BanchoEndpoint.HandleAccountRegistration(context));
 
             app.Run();
-
-            await connection.CloseAsync();
         }
 
         public static async Task<IResult> Handle(HttpContext context)
@@ -76,6 +63,26 @@ namespace OsuServer
 
             await response.WriteAsync($"{s_Bancho.Name} is up and running!");
             return Results.Ok();
+        }
+
+        public static async Task<OsuServerDb> GetDbConnection()
+        {
+            var connection = new MySqlConnection($"Server={ServerConfiguration.DatabaseServerIP};" +
+                                                 $"User ID={ServerConfiguration.DatabaseUsername};" +
+                                                 $"Password={ServerConfiguration.DatabasePassword};" +
+                                                 $"Database={ServerConfiguration.DatabaseName}");
+            await connection.OpenAsync();
+
+            OsuServerDb database = new(connection);
+            if (!_tablesInitialized)
+            {
+                Console.WriteLine("Initializing tables...");
+                await database.InitializeTables();
+                Console.WriteLine("Complete!");
+
+                _tablesInitialized = true;
+            }
+            return database;
         }
 
     }
