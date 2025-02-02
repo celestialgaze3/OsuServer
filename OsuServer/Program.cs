@@ -1,15 +1,9 @@
 using MySqlConnector;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using OsuServer.API;
 using OsuServer.API.Packets;
 using OsuServer.External.Database;
 using OsuServer.External.OsuV2Api;
 using OsuServer.State;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Linq;
-using OsuServer.External.Database.Rows;
-using OsuServer.External.Database.Tables;
 
 namespace OsuServer
 {
@@ -27,6 +21,7 @@ namespace OsuServer
                                                        $"Password={ServerConfiguration.DatabasePassword};" +
                                                        $"Database={ServerConfiguration.DatabaseName}");
             await connection.OpenAsync();
+
 
             Console.WriteLine("Initializing tables...");
             OsuServerDb database = new(connection);
@@ -70,6 +65,8 @@ namespace OsuServer
             app.MapPost("/users", async (HttpContext context) => await s_BanchoEndpoint.HandleAccountRegistration(context));
 
             app.Run();
+
+            await connection.CloseAsync();
         }
 
         public static async Task<IResult> Handle(HttpContext context)

@@ -17,12 +17,24 @@ namespace OsuServer.External.Database
             Name = name;
         }
 
+        public async Task EnsureConnectionOpen()
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                Console.WriteLine("Disconnected from MySQL database. Reconnecting...");
+                await _connection.OpenAsync();
+                Console.WriteLine("Complete!");
+            }
+        }
+
         /// <summary>
         /// Makes a query to information_schema.tables to see if this table exists
         /// </summary>
         /// <returns>Whether or not the table exists</returns>
         public async Task<bool> CheckExistsAsync()
         {
+            await EnsureConnectionOpen();
+
             var command = new MySqlCommand("SELECT count(*) " +
                 "FROM information_schema.tables " +
                 $"WHERE table_schema = '{ServerConfiguration.DatabaseName}' " +
@@ -41,6 +53,8 @@ namespace OsuServer.External.Database
         /// <returns>A task representing the asynchronous operation</returns>
         public virtual async Task<int> CreateTableAsync()
         {
+            await EnsureConnectionOpen();
+
             var command = new MySqlCommand($"CREATE TABLE IF NOT EXISTS {Name} ({_schema});", _connection);
             LogSqlCommand(command);
             return await command.ExecuteNonQueryAsync();
@@ -65,6 +79,8 @@ namespace OsuServer.External.Database
         /// <returns>The first <typeparamref name="T"/> returned by the database, or null if none was found</returns>
         public async Task<T?> FetchOneAsync(params DbClause[] clauses)
         {
+            await EnsureConnectionOpen();
+
             var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
 
             foreach (var clause in clauses)
@@ -93,6 +109,8 @@ namespace OsuServer.External.Database
         /// <returns>A list of all matching <typeparamref name="T"/></returns>
         public async Task<List<T>> FetchManyAsync(params DbClause[] clauses)
         {
+            await EnsureConnectionOpen();
+
             List<T> rows = new();
             var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
 
@@ -122,6 +140,8 @@ namespace OsuServer.External.Database
         /// <returns>Information about the insertion of type <typeparamref name="U"/></returns>
         public async Task<U> InsertAsync(T insertion)
         {
+            await EnsureConnectionOpen();
+
             Dictionary<string, object?> insertionArguments = insertion.GetInsertionArguments();
             string columnNames = string.Join(",", insertionArguments.Select(entry => entry.Key));
             string valueNames = string.Join(",", insertionArguments.Select(entry => $"@{entry.Key}"));
@@ -152,6 +172,8 @@ namespace OsuServer.External.Database
         /// <returns>A task representing the asynchronous operation</returns>
         public async Task UpdateAsync(T insertion, params DbClause[] clauses)
         {
+            await EnsureConnectionOpen();
+
             Dictionary<string, object?> updateArguments = insertion.GetUpdateArguments();
             DbClause setClause = new(
                 "SET",
