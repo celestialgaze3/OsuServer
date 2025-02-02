@@ -1,22 +1,20 @@
 ﻿using MySqlConnector;
 using OsuServer.External.Database.Rows;
-using OsuServer.State;
-using System.ComponentModel;
-using System.Data.Common;
 
 namespace OsuServer.External.Database.Tables
 {
-    public class DbAccountTable(MySqlConnection connection) : DbTable<DbAccount, int>(connection,
-            "Account",
-            @"id INT UNSIGNED AUTO_INCREMENT,
-            username VARCHAR(15) NOT NULL UNIQUE,
-            email VARCHAR(50) NOT NULL UNIQUE,
-            password VARCHAR(255) NOT NULL,
-            registration_time BIGINT NOT NULL,
-            last_activity_time BIGINT NOT NULL,
+    public class DbAccountTable(MySqlConnection connection) : DbTable<DbAccount, int>(
+        connection,
+        "Account",
+        @"id INT UNSIGNED AUTO_INCREMENT,
+        username VARCHAR(15) NOT NULL UNIQUE,
+        email VARCHAR(50) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        registration_time BIGINT NOT NULL,
+        last_activity_time BIGINT NOT NULL,
 
-            PRIMARY KEY(id)",
-            "id")
+        PRIMARY KEY(id)",
+        "id")
     {
         public override async Task<int> CreateTableAsync()
         {

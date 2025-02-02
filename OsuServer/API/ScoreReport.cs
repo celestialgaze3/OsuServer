@@ -58,7 +58,7 @@ namespace OsuServer.API
                 UpdatedValue("rankedScore", _oldStats.RankedScore, _newStats.RankedScore),
                 UpdatedValue("totalScore", _oldStats.TotalScore, _newStats.TotalScore),
                 UpdatedValue("maxCombo", _oldStats.MaxCombo, _newStats.MaxCombo),
-                UpdatedValue("accuracy", _oldStats.Accuracy * 100f, _newStats.Accuracy * 100f),
+                UpdatedValue("accuracy", (float) _oldStats.Accuracy * 100f, (float) _newStats.Accuracy * 100f),
                 UpdatedValue("pp", (float) Math.Round(_oldStats.PP), (float) Math.Round(_newStats.PP)),
                 $"achievements-new:" // TODO: achievements
             ];

@@ -5,7 +5,7 @@
         /// <returns>The arguments used when inserting this row into the database</returns>
         public Dictionary<string, object?> GetInsertionArguments()
         {
-            Dictionary<string, object?> result = new();
+            Dictionary<string, object?> result = [];
             foreach (DbColumn column in GetColumns())
             {
                 if (column.CanModify)
@@ -17,9 +17,10 @@
             return result;
         }
 
+        /// <returns>The arguments used when updating this row in the database</returns>
         public Dictionary<string, object?> GetUpdateArguments()
         {
-            Dictionary<string, object?> result = new();
+            Dictionary<string, object?> result = [];
             foreach (DbColumn column in GetColumns()) 
             {
                 if (column.CanModify && column.HasBeenModified)

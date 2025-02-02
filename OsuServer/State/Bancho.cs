@@ -1,6 +1,7 @@
 ﻿using MySqlConnector;
 using OsuServer.API;
 using OsuServer.API.Packets.Server;
+using OsuServer.External.Database;
 using OsuServer.External.OsuV2Api.Requests;
 using OsuServer.External.OsuV2Api.Responses;
 
@@ -11,7 +12,7 @@ namespace OsuServer.State
         public string Name { get; set; }
         public BanchoScores Scores { get; private set; }
 
-        public MySqlConnection DatabaseConnection { get; private set; }
+        public OsuServerDb Database { get; private set; }
 
         private Dictionary<string, int> _tokenToPlayerId = new();
         private Dictionary<string, int> _nameToPlayerId = new();
@@ -24,9 +25,9 @@ namespace OsuServer.State
         private Dictionary<int, BanchoBeatmap> _beatmapIdToBeatmap = new();
         private Dictionary<string, int> _beatmapMD5ToBeatmapId = new();
 
-        public Bancho(MySqlConnection connection, string name)
+        public Bancho(OsuServerDb database, string name)
         {
-            DatabaseConnection = connection;
+            Database = database;
             Name = name;
             Scores = new BanchoScores(this);
 
@@ -63,12 +64,12 @@ namespace OsuServer.State
             return connection;
         }
 
-        public Player CreatePlayer(int id, Connection connection, LoginData data)
+        public async Task<Player> CreatePlayer(int id, Connection connection, LoginData data)
         {
             if (_tokenToPlayerId.ContainsKey(connection.Token)) return _playerIdToPlayer[_tokenToPlayerId[connection.Token]];
 
             Player player = new Player(id, this, connection, data);
-            OnPlayerConnect(player);
+            await OnPlayerConnect(player);
             _tokenToPlayerId[connection.Token] = player.Id;
             _nameToPlayerId[player.Username] = player.Id;
             _playerIdToPlayer[player.Id] = player;
@@ -144,7 +145,7 @@ namespace OsuServer.State
             return _nameToChannel[name];
         }
 
-        public void OnPlayerConnect(Player player)
+        public async Task OnPlayerConnect(Player player)
         {
             foreach(Player onlinePlayer in GetPlayers())
             {
@@ -156,6 +157,8 @@ namespace OsuServer.State
                 player.Connection.AddPendingPacket(new UserPresencePacket(onlinePlayer, player.Connection.Token, this));
                 player.Connection.AddPendingPacket(new UserStatsPacket(onlinePlayer, player.Connection.Token, this));
             }
+
+            await player.UpdateFromDb();
         }
 
         public void BroadcastUserUpdate(Player player)

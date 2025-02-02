@@ -16,7 +16,7 @@ namespace OsuServer.State
         {
             _bancho = bancho;
         }
-        public SubmittedScore Submit(Player player, Score score, string scoreChecksum)
+        public async Task<SubmittedScore> Submit(Player player, Score score, string scoreChecksum)
         {
             if (IsSubmitted(scoreChecksum)) 
                 return IdToScore[ChecksumToId[scoreChecksum]];
@@ -31,7 +31,7 @@ namespace OsuServer.State
             // TODO: PP indexing for fast global top plays retrieval (when database is integrated)
 
             // Update the player's state based on this score
-            player.UpdateWithScore(submittedScore);
+            await player.UpdateWithScore(submittedScore);
 
             return submittedScore;
         }

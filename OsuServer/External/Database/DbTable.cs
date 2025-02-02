@@ -2,12 +2,11 @@
 
 namespace OsuServer.External.Database
 {
-    public abstract class DbTable<T, U> where T : DbRow
+    public abstract class DbTable
     {
-
         protected string _schema;
         protected MySqlConnection _connection;
-        private string _insertionReturnColumns;
+        protected string _insertionReturnColumns;
         public string Name { get; private set; }
 
         public DbTable(MySqlConnection connection, string name, string schema, string insertionReturnColumns = "")
@@ -46,6 +45,18 @@ namespace OsuServer.External.Database
             LogSqlCommand(command);
             return await command.ExecuteNonQueryAsync();
         }
+
+        protected void LogSqlCommand(MySqlCommand command)
+        {
+            Console.WriteLine($"Now executing SQL command:\n{command.CommandText}");
+        }
+    }
+
+    public abstract class DbTable<T, U> : DbTable where T : DbRow
+    {
+        public DbTable(MySqlConnection connection, string name, string schema, string insertionReturnColumns = "")
+            : base(connection, name, schema, insertionReturnColumns)
+        { }
 
         /// <summary>
         /// Gets one <typeparamref name="T"/> from this table
@@ -217,10 +228,5 @@ namespace OsuServer.External.Database
         /// <param name="reader">The data reader</param>
         /// <returns>The <typeparamref name="U"/> an insert operation should return</returns>
         protected abstract Task<U> ReadInsertion(MySqlDataReader reader);
-
-        private void LogSqlCommand(MySqlCommand command)
-        {
-            Console.WriteLine($"Now executing SQL command:\n{command.CommandText}");
-        }
     }
 }

@@ -27,9 +27,13 @@ namespace OsuServer
                                                        $"Password={ServerConfiguration.DatabasePassword};" +
                                                        $"Database={ServerConfiguration.DatabaseName}");
             await connection.OpenAsync();
+
+            Console.WriteLine("Initializing tables...");
+            OsuServerDb database = new(connection);
+            await database.InitializeTables();
             Console.WriteLine("Complete!");
 
-            s_Bancho = new Bancho(connection, "Bancho");
+            s_Bancho = new Bancho(database, "Bancho");
             s_BanchoEndpoint = new BanchoAPI(s_Bancho);
 
             ClientPacketHandler.RegisterPacketTypes();

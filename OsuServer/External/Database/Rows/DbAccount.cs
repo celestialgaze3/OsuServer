@@ -5,12 +5,12 @@ namespace OsuServer.External.Database.Rows
 {
     public class DbAccount : DbRow
     {
-        public DbColumn<int> Id { get; private set; }
-        public DbColumn<string> Username { get; set; }
-        public DbColumn<string> Email { get; set; }
-        public DbColumn<string> Password { get; set; }
-        public DbColumn<long> RegistrationTime { get; set; }
-        public DbColumn<long> LastActivityTime { get; set; }
+        public DbColumn<int> Id { get; }
+        public DbColumn<string> Username { get; }
+        public DbColumn<string> Email { get; }
+        public DbColumn<string> Password { get;  }
+        public DbColumn<long> RegistrationTime { get; }
+        public DbColumn<long> LastActivityTime { get; }
 
         public DbAccount(int id, string username, string email, string password, long registrationTime, long lastActivityTime)
         {

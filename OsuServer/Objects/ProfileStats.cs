@@ -7,14 +7,14 @@ namespace OsuServer.Objects
 
         public long TotalScore = 0L;
         public long RankedScore = 0L;
-        public float Accuracy = 0f;
+        public double Accuracy = 0d;
         public int Playcount = 0;
         public int Rank = 0;
-        public float PP = 0.0f;
+        public double PP = 0.0d;
         public int MaxCombo = 0;
 
         public ProfileStats() { }
-        public ProfileStats(long totalScore, long rankedScore, float accuracy, int playcount, int rank, float pp, int maxCombo)
+        public ProfileStats(long totalScore, long rankedScore, double accuracy, int playcount, int rank, double pp, int maxCombo)
         {
             TotalScore = totalScore;
             RankedScore = rankedScore;

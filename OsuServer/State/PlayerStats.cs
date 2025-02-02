@@ -1,4 +1,7 @@
-﻿using OsuServer.Objects;
+﻿using OsuServer.External.Database;
+using OsuServer.External.Database.Rows;
+using OsuServer.External.Database.Tables;
+using OsuServer.Objects;
 
 namespace OsuServer.State
 {
@@ -21,7 +24,7 @@ namespace OsuServer.State
             _profileStats = new ProfileStats();
         }
 
-        public void UpdateWith(SubmittedScore score)
+        public async Task UpdateWith(SubmittedScore score)
         {
             // These stats are updated regardless of ranked status.
             _profileStats.Playcount += 1;
@@ -42,6 +45,71 @@ namespace OsuServer.State
             // Calculate and store the player's new total pp and accuracy
             _profileStats.PP = _player.Scores.CalculatePerformancePoints();
             _profileStats.Accuracy = _player.Scores.CalculateAccuracy();
+
+            await SaveToDb();
+        }
+
+        public async Task<DbProfileStats?> GetDbRow()
+        {
+            DbProfileStatsTable profileStats = _player.Bancho.Database.ProfileStats;
+            return await profileStats.FetchOneAsync(
+                new DbClause(
+                    "WHERE", 
+                    "account_id = @account_id", 
+                    new() { ["account_id"] = _player.Id }
+                )
+            );
+        }
+
+        public async Task UpdateFromDb()
+        {
+            DbProfileStats? row = await GetDbRow();
+            if (row == null) return;
+
+            _profileStats = new ProfileStats(
+                row.TotalScore.Value, 
+                row.RankedScore.Value, 
+                row.Accuracy.Value, 
+                row.Playcount.Value, 
+                row.Rank.Value, 
+                row.PP.Value, 
+                row.MaxCombo.Value
+            );
+        }
+
+        public async Task SaveToDb()
+        {
+            DbProfileStatsTable table = _player.Bancho.Database.ProfileStats;
+            DbProfileStats? row = await GetDbRow();
+
+            if (row == null)
+            {
+                row = new(
+                    _player.Id,
+                    _profileStats.TotalScore,
+                    _profileStats.RankedScore,
+                    _profileStats.Accuracy,
+                    _profileStats.Playcount,
+                    _profileStats.Rank,
+                    _profileStats.PP,
+                    _profileStats.MaxCombo
+                );
+
+                await table.InsertAsync(row);
+            } 
+            else
+            {
+                row.TotalScore.Value = _profileStats.TotalScore;
+                row.RankedScore.Value = _profileStats.RankedScore;
+                row.Accuracy.Value = _profileStats.Accuracy;
+                row.Playcount.Value = _profileStats.Playcount;
+                row.Rank.Value = _profileStats.Rank;
+                row.PP.Value = _profileStats.PP;
+                row.MaxCombo.Value = _profileStats.MaxCombo;
+
+                await table.UpdateOneAsync(row);
+            }
+
         }
 
     }

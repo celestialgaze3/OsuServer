@@ -8,9 +8,7 @@ namespace OsuServer.State
     {
         // This player's unique token used to identify their requests ("osu-token" in headers)
         public Connection Connection { get; private set; }
-
-        private Bancho _bancho;
-
+        public Bancho Bancho { get; private set; }
         public int Id { get; private set; }
         public string Username { get; private set; }
         public Privileges Privileges { get; private set; }
@@ -30,7 +28,7 @@ namespace OsuServer.State
         public Player(int id, Bancho bancho, Connection connection, LoginData loginData)
         {
             Id = id;
-            _bancho = bancho;
+            Bancho = bancho;
             Connection = connection;
             Username = loginData.Username;
             Privileges = new Privileges();
@@ -43,7 +41,7 @@ namespace OsuServer.State
             Presence.UtcOffset = loginData.UtcOffset;
             BlockingStrangerMessages = loginData.DisallowPrivateMessages;
             LoginTime = DateTime.Now;
-            Scores = new PlayerScores(this, _bancho);
+            Scores = new PlayerScores(this, Bancho);
         }
 
         public void SendMessage(OsuMessage message)
@@ -91,10 +89,15 @@ namespace OsuServer.State
             return Friends.Contains(player.Id);
         }
 
-        public void UpdateWithScore(SubmittedScore score)
+        public async Task UpdateWithScore(SubmittedScore score)
         {
             Scores.Add(score);
-            Stats.UpdateWith(score);
+            await Stats.UpdateWith(score);
+        }
+
+        public async Task UpdateFromDb()
+        {
+            await Stats.UpdateFromDb();
         }
 
     }

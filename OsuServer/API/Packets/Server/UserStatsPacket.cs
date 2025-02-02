@@ -20,7 +20,7 @@ namespace OsuServer.API.Packets.Server
             binaryWriter.Write((byte) Player.Status.GameMode); // mode id
             binaryWriter.Write(Player.Status.MapID); // mnap id
             binaryWriter.Write(Player.Stats.Values.RankedScore); // ranked score
-            binaryWriter.Write(Player.Stats.Values.Accuracy); // acc
+            binaryWriter.Write((float) Player.Stats.Values.Accuracy); // acc
             binaryWriter.Write(Player.Stats.Values.Playcount); // playcount
             binaryWriter.Write(Player.Stats.Values.TotalScore); // total scotre
             binaryWriter.Write(Player.Stats.Values.Rank); // rank
