@@ -28,10 +28,11 @@ namespace OsuServer.External.Database.Rows
         public DbColumn<bool> IsBestAccuracy { get; }
         public DbColumn<bool> IsBestCombo { get; }
         public DbColumn<bool> IsBestScore { get; }
+        public DbColumn<long> SubmittedTime { get; }
 
         public DbScore(uint id, uint accountId, uint beatmapId, int perfects, int goods, int bads, int gekis, int katus, int misses,
             int totalScore, int maxCombo, bool isPerfectCombo, int mods, bool isPass, byte gameMode, double pp, bool isBestPP,
-            bool isBestAccuracy, bool isBestCombo, bool isBestScore)
+            bool isBestAccuracy, bool isBestCombo, bool isBestScore, long timestamp)
         {
             Id = new("id", id, false);
             AccountId = new("account_id", accountId);
@@ -53,6 +54,7 @@ namespace OsuServer.External.Database.Rows
             IsBestAccuracy = new("is_best_accuracy", isBestAccuracy);
             IsBestCombo = new("is_best_combo", isBestCombo);
             IsBestScore = new("is_best_score", isBestScore);
+            SubmittedTime = new("submitted_time", timestamp);
         }
 
         protected DbScore(uint id, Score score, bool isBestPP, bool isBestAccuracy, bool isBestCombo, bool isBestScore)
@@ -77,6 +79,7 @@ namespace OsuServer.External.Database.Rows
             IsBestAccuracy = new("is_best_accuracy", isBestAccuracy);
             IsBestCombo = new("is_best_combo", isBestCombo);
             IsBestScore = new("is_best_score", isBestScore);
+            SubmittedTime = new("submitted_time", score.Timestamp);
         }
         
         public static async Task<DbScore> PrepareInsertion(OsuServerDb database, Score score)
@@ -170,7 +173,7 @@ namespace OsuServer.External.Database.Rows
         {
             return [Id, AccountId, BeatmapId, Perfects, Goods, Bads, Gekis, Katus, Misses, 
                 TotalScore, MaxCombo, IsPerfectCombo, Mods, IsPass, GameMode, PP, IsBestPP,
-                IsBestAccuracy, IsBestCombo, IsBestScore];
+                IsBestAccuracy, IsBestCombo, IsBestScore, SubmittedTime];
         }
 
         public override DbColumn[] GetIdentifyingColumns()

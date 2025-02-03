@@ -34,7 +34,8 @@ namespace OsuServer.API
                     passed: submissionArgs[14] == "True",
                     gameMode: (GameMode)Int32.Parse(submissionArgs[15]),
                     player: bancho.GetPlayerByUsername(submissionArgs[1]),
-                    beatmap: await bancho.GetBeatmap(submissionArgs[0])
+                    beatmap: await bancho.GetBeatmap(submissionArgs[0]),
+                    timestamp: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
                 ),
                 ClientTime = submissionArgs[16], // TODO: parse DateTime
                 ClientNum = Int32.Parse(submissionArgs[17]),

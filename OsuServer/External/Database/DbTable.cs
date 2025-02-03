@@ -1,7 +1,4 @@
 ﻿using MySqlConnector;
-using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Asn1.X509;
-using System.ComponentModel;
 
 namespace OsuServer.External.Database
 {
@@ -100,6 +97,12 @@ namespace OsuServer.External.Database
             return null;
         }
 
+        /// <summary>
+        /// Gets the ordered index of a row when sorted by one of its columns
+        /// </summary>
+        /// <param name="row">The row to get the ordered index of</param>
+        /// <param name="orderByColumn">The column name to order by</param>
+        /// <returns>The index of this column</returns>
         public async Task<int> GetRankAsync(T row, string orderByColumn)
         {
             await _database.EnsureConnectionOpen();

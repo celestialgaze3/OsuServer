@@ -26,6 +26,7 @@ namespace OsuServer.External.Database.Tables
         is_best_accuracy BOOLEAN NOT NULL DEFAULT 0,
         is_best_combo BOOLEAN NOT NULL DEFAULT 0,
         is_best_score BOOLEAN NOT NULL DEFAULT 0,
+        submitted_time BIGINT NOT NULL DEFAULT 0,
 
         PRIMARY KEY(id),
         CONSTRAINT FK_score_account FOREIGN KEY (account_id) REFERENCES Account(id)",
@@ -54,7 +55,8 @@ namespace OsuServer.External.Database.Tables
                 reader.GetBoolean(16),
                 reader.GetBoolean(17),
                 reader.GetBoolean(18),
-                reader.GetBoolean(19)
+                reader.GetBoolean(19),
+                reader.GetInt64(20)
             );
         }
 

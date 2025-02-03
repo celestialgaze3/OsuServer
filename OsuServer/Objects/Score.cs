@@ -25,9 +25,10 @@ namespace OsuServer.Objects
 
         public Player Player { get; private set; }
         public BanchoBeatmap Beatmap { get; private set; }
+        public long Timestamp { get; internal set; }
 
         public Score(int perfects, int goods, int bads, int gekis, int katus, int misses, int totalScore, int maxCombo, bool perfectCombo,
-            Grade grade, Mods mods, bool passed, GameMode gameMode, Player player, BanchoBeatmap beatmap)
+            Grade grade, Mods mods, bool passed, GameMode gameMode, Player player, BanchoBeatmap beatmap, long timestamp)
         {
             Perfects = perfects;
             Goods = goods;
@@ -44,6 +45,7 @@ namespace OsuServer.Objects
             GameMode = gameMode;
             Player = player;
             Beatmap = beatmap;
+            Timestamp = timestamp;
         }
 
         public static async Task<Score> Get(Bancho bancho, DbScore dbScore)
@@ -71,7 +73,8 @@ namespace OsuServer.Objects
                 isPass,
                 gameMode,
                 bancho.GetPlayer((int)dbScore.AccountId.Value),
-                await bancho.GetBeatmap((int)dbScore.BeatmapId.Value)
+                await bancho.GetBeatmap((int)dbScore.BeatmapId.Value),
+                dbScore.SubmittedTime.Value
             );
         }
 
