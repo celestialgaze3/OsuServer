@@ -17,16 +17,18 @@ namespace OsuServer.State
         {
             _bancho = bancho;
         }
-        public async Task<SubmittedScore> Submit(OsuServerDb database, OnlinePlayer player, Score score, string scoreChecksum)
+        public async Task<(SubmittedScore, DbScore?)> Submit(OsuServerDb database, OnlinePlayer player, Score score, string scoreChecksum)
         {
             if (IsSubmitted(scoreChecksum)) 
-                return _idToScore[_checksumToId[scoreChecksum]];
+                return (_idToScore[_checksumToId[scoreChecksum]], null);
 
             await database.StartTransaction();
             DbScore dbScore = await DbScore.PrepareInsertion(database, score);
 
             int assignedScoreId = await database.Score.InsertAsync(dbScore);
             await database.CommitTransaction();
+
+            dbScore.Id.Value = (uint) assignedScoreId;
 
             SubmittedScore submittedScore = new(score, assignedScoreId);
             _idToScore.Add(assignedScoreId, submittedScore);
@@ -36,7 +38,7 @@ namespace OsuServer.State
             // Update the player's state based on this score
             await player.UpdateWithScore(database, submittedScore);
 
-            return submittedScore;
+            return (submittedScore, dbScore);
         }
 
         /// <summary>

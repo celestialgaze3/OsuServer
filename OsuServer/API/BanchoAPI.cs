@@ -424,14 +424,21 @@ namespace OsuServer.API
             // Get beatmap information
             BanchoBeatmap beatmap = await Bancho.GetBeatmap(beatmapMD5);
 
+            // Get best rank before submission
+            int previousRank = await DbScore.GetBestRank(database, beatmap, player);
+
             // Update server state with this score
-            SubmittedScore submittedScore = await Bancho.Scores.Submit(database, player, scoreData.Score, scoreData.Checksum);
-            ScoreStats oldBestStats = beatmap.UpdateWithScore(player, submittedScore);
+            (SubmittedScore, DbScore?) submittedScore = await Bancho.Scores.Submit(
+                database, player, scoreData.Score, scoreData.Checksum);
+            ScoreStats oldBestStats = beatmap.UpdateWithScore(player, submittedScore.Item1);
+
+            // Get rank of submitted score
+            int newRank = await DbScore.GetRank(database, submittedScore.Item2, beatmap);
 
             // Send data back to client
             ScoreReport report = new(Bancho, beatmap.Info, player, oldStats, player.Stats.Values,
-                oldBestStats, new ScoreStats(submittedScore));
-            string clientResponse = report.GenerateString(scoreData.Checksum);
+                oldBestStats, new ScoreStats(submittedScore.Item1));
+            string clientResponse = report.GenerateString(previousRank, newRank, scoreData.Checksum);
 
             await response.Body.WriteAsync(Encoding.UTF8.GetBytes(clientResponse));
 
@@ -631,14 +638,7 @@ namespace OsuServer.API
                     }
                 )
             );
-            int playerRank = 0;
-            
-            if (playerTopScore != null) 
-                playerRank = await database.Score.GetRankAsync(
-                    playerTopScore, 
-                    "total_score", 
-                    $"beatmap_id = {beatmap.Info.Id} AND is_pass = 1"
-                );
+            int playerRank = await DbScore.GetRank(database, playerTopScore, beatmap);
 
             // hehe TODO: custom ranking
             if (beatmap.Info.UserId == 10321695)

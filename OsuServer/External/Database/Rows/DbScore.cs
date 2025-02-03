@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc.Diagnostics;
 using MySqlConnector;
+using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using OsuServer.State;
+using System.Numerics;
 using System.Xml.Linq;
 
 namespace OsuServer.External.Database.Rows
@@ -197,6 +199,26 @@ namespace OsuServer.External.Database.Rows
             );
         }
 
+        public static async Task<int> GetRank(OsuServerDb database, DbScore? score, BanchoBeatmap beatmap)
+        {
+            int rank = 0;
+            if (score != null)
+            {
+                rank = await database.Score.GetRankAsync(
+                score,
+                "total_score",
+                    $"beatmap_id = {beatmap.Info.Id} AND is_pass = 1"
+                );
+            }
+
+            return rank;
+        }
+
+        public static async Task<int> GetBestRank(OsuServerDb database, BanchoBeatmap beatmap, Player player)
+        {
+            DbScore? playerTopScore = await GetTopScoreAsync(database, beatmap, player);
+            return await GetRank(database, playerTopScore, beatmap);
+        }
 
         public override DbColumn[] GetColumns()
         {

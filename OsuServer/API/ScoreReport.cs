@@ -1,7 +1,11 @@
-﻿using OsuServer.External.OsuV2Api;
+﻿using OsuServer.External.Database;
+using OsuServer.External.Database.Rows;
+using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using OsuServer.State;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace OsuServer.API
 {
@@ -26,12 +30,13 @@ namespace OsuServer.API
         }
 
         // TODO: Score checksum calculating to remove this argument
-        public string GenerateString(string scoreChecksum)
+        public string GenerateString(int oldRank, int newRank, string scoreChecksum)
         {
             if (_beatmap.BeatmapSet == null)
             {
                 Console.WriteLine($"Beatmap set was null for beatmap ID {_beatmap.Id}");
             }
+
             string[] report = [
                 $"beatmapId:{_beatmap.Id}",
                 $"beatmapSetId:{(_beatmap.BeatmapSet != null ? _beatmap.BeatmapSet.Id : 0)}",
@@ -42,8 +47,7 @@ namespace OsuServer.API
                 $"chartId:beatmap",
                 $"chartUrl:https://{ServerConfiguration.Domain}/b/{_beatmap.Id}",
                 $"chartName:Beatmap Ranking",
-                // TODO: map rankings
-                UpdatedValue("rank", 0, 0),
+                UpdatedValue("rank", oldRank, newRank),
                 UpdatedValue("rankedScore", _oldScore.TotalScore, _newScore.TotalScore),
                 UpdatedValue("totalScore", _oldScore.TotalScore, _newScore.TotalScore),
                 UpdatedValue("maxCombo", _oldScore.Combo, _newScore.Combo),
