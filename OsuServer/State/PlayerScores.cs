@@ -26,7 +26,10 @@ namespace OsuServer.State
         {
             int totalPasses = 0;
             double totalPP = 0.0f;
-            foreach (var entry in _scoreIds) 
+            if (_sortedTopPlays == null)
+                return 0;
+
+            foreach (var entry in _sortedTopPlays) 
             {
                 int id = entry.Value;
                 SubmittedScore? score = _bancho.Scores.GetById(id);
@@ -37,9 +40,10 @@ namespace OsuServer.State
                     continue;
                 }
 
-                if (!score.Passed) continue;
+                if (!score.Passed || !score.Beatmap.ShouldAwardStatIncrease()) continue;
 
-                totalPP += (double)(score.Beatmap.CalculatePerformancePoints(score) * Math.Pow(0.95f, totalPasses));
+                double scorePP = score.Beatmap.CalculatePerformancePoints(score);
+                totalPP += scorePP * Math.Pow(0.95f, totalPasses);
                 totalPasses++;
             }
 
@@ -50,8 +54,10 @@ namespace OsuServer.State
         {
             int totalPasses = 0;
             double totalAccuracyWeighted = 0.0f;
+            if (_sortedTopPlays == null)
+                return 0;
 
-            foreach (var entry in _scoreIds)
+            foreach (var entry in _sortedTopPlays)
             {
                 int id = entry.Value;
                 Score? score = _bancho.Scores.GetById(id);
@@ -61,9 +67,10 @@ namespace OsuServer.State
                     continue;
                 }
 
-                if (!score.Passed) continue;
+                if (!score.Passed || !score.Beatmap.ShouldAwardStatIncrease()) continue;
 
-                totalAccuracyWeighted += (double)(score.CalculateAccuracy() * Math.Pow(0.95d, totalPasses));
+                double scoreAccuracy = score.CalculateAccuracy();
+                totalAccuracyWeighted += scoreAccuracy * Math.Pow(0.95d, totalPasses);
                 totalPasses++;
             }
 

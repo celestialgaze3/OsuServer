@@ -68,5 +68,29 @@ namespace OsuServer.State
 
             return pp;
         }
+
+        /// <returns>This beatmap's adjusted ranked status</returns>
+        public RankStatus GetRankStatus()
+        {
+            // hehe TODO: custom ranking
+            if (Info.UserId == 10321695)
+                Info.RankStatus = RankStatus.Ranked;
+
+            return Info.RankStatus;
+        }
+
+        public bool ShouldAwardStatIncrease()
+        {
+            RankStatus status = GetRankStatus();
+            if (status == RankStatus.Ranked || status == RankStatus.Approved ||
+                status == RankStatus.Loved)
+            {
+                return true;
+            }
+
+            // Graveyard, pending, qualified
+            return false;
+        }
     }
+
 }

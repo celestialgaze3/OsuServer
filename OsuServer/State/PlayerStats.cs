@@ -30,8 +30,8 @@ namespace OsuServer.State
             _profileStats.Playcount += 1;
             _profileStats.TotalScore += score.TotalScore;
 
-            // These stats should only be incremented if the score is a pass (TODO: on a ranked map)
-            if (score.Passed)
+            // These stats should only be incremented if the score should award pp
+            if (score.Passed && score.Beatmap.ShouldAwardStatIncrease())
             {
                 _profileStats.RankedScore += score.TotalScore;
 
@@ -43,10 +43,19 @@ namespace OsuServer.State
             }
 
             // Calculate and store the player's new total pp and accuracy
-            _profileStats.PP = _player.Scores.CalculatePerformancePoints();
-            _profileStats.Accuracy = _player.Scores.CalculateAccuracy();
+            RecalculateStats();
 
             await SaveToDb(database);
+        }
+
+        /// <summary>
+        /// Recalculates all of this player's stats
+        /// </summary>
+        public void RecalculateStats()
+        {
+            _profileStats.PP = _player.Scores.CalculatePerformancePoints();
+            _profileStats.Accuracy = _player.Scores.CalculateAccuracy();
+            // TODO: ranked and maybe total score if we decide to store fails
         }
 
         public async Task<DbProfileStats?> GetDbRow(OsuServerDb database)

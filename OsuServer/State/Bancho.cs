@@ -176,7 +176,13 @@ namespace OsuServer.State
 
         public async Task OnPlayerConnect(OsuServerDb database, OnlinePlayer player)
         {
-            foreach(OnlinePlayer onlinePlayer in GetPlayers())
+            // Updates this player's state from the database
+            await player.UpdateFromDb(database);
+
+            // Recalculate stats
+            player.Stats.RecalculateStats();
+
+            foreach (OnlinePlayer onlinePlayer in GetPlayers())
             {
                 // Send each online player a copy of this user's info
                 onlinePlayer.Connection.AddPendingPacket(new UserPresencePacket(player, onlinePlayer.Connection.Token, this));
@@ -186,8 +192,6 @@ namespace OsuServer.State
                 player.Connection.AddPendingPacket(new UserPresencePacket(onlinePlayer, player.Connection.Token, this));
                 player.Connection.AddPendingPacket(new UserStatsPacket(onlinePlayer, player.Connection.Token, this));
             }
-
-            await player.UpdateFromDb(database);
         }
 
         public void BroadcastUserUpdate(OnlinePlayer player)

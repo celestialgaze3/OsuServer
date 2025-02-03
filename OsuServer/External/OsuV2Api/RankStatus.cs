@@ -65,5 +65,15 @@
         {
             return ruleset.ValueInt;
         }
+
+        public static bool operator==(RankStatus lhs, RankStatus rhs)
+        {
+            return lhs.ValueInt == rhs.ValueInt;
+        }
+
+        public static bool operator!=(RankStatus lhs, RankStatus rhs)
+        {
+            return lhs.ValueInt != rhs.ValueInt;
+        }
     }
 }

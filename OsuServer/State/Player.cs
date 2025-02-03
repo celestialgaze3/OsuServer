@@ -21,7 +21,16 @@ namespace OsuServer.State
         public virtual async Task<string> GetUsername(OsuServerDb database)
         {
             if (_username == null) {
-                DbAccount? account = await database.Account.FetchOneAsync(new DbClause("WHERE", "id = @id", new() { ["id"] = Id }));
+                DbAccount? account = await database.Account.FetchOneAsync(
+                    new DbClause(
+                        "WHERE", 
+                        "id = @id", 
+                        new() { 
+                            ["id"] = Id 
+                        }
+                    )
+                );
+
                 if (account != null)
                 {
                     _username = account.Username.Value;

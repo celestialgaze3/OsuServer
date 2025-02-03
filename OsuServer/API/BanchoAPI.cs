@@ -640,14 +640,10 @@ namespace OsuServer.API
             );
             int playerRank = await DbScore.GetRank(database, playerTopScore, beatmap);
 
-            // hehe TODO: custom ranking
-            if (beatmap.Info.UserId == 10321695)
-                beatmap.Info.RankStatus = RankStatus.Ranked;
-
             List<string> responseBody = new()
             {
                 // RankStatus|HasOsz2|BeatmapId|BeatmapSetId|ScoreCount|FeaturedArtistTrackId|FeaturedArtistLicense
-                $"{beatmap.Info.RankStatus.ValueGetScores}|false|{beatmap.Info.Id}|{beatmap.Info.BeatmapSetId}|{totalScoreCount}|0|",
+                $"{beatmap.GetRankStatus().ValueGetScores}|false|{beatmap.Info.Id}|{beatmap.Info.BeatmapSetId}|{totalScoreCount}|0|",
                 // Server offset
                 beatmap.Info.BeatmapSet != null ? $"{beatmap.Info.BeatmapSet.Offset}" : "0",
                 // Beatmap name
