@@ -75,6 +75,14 @@ namespace OsuServer.State
                 row.PP.Value, 
                 row.MaxCombo.Value
             );
+
+            await UpdateRank(database, row);
+        }
+
+        public async Task UpdateRank(OsuServerDb database, DbProfileStats row)
+        {
+            int rank = await database.ProfileStats.GetRankAsync(row, "pp");
+            _profileStats.Rank = rank;
         }
 
         public async Task SaveToDb(OsuServerDb database)
@@ -110,6 +118,7 @@ namespace OsuServer.State
                 await table.UpdateOneAsync(row);
             }
 
+            await UpdateRank(database, row);
         }
 
     }

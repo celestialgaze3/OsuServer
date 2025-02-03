@@ -70,7 +70,8 @@ namespace OsuServer
             var connection = new MySqlConnection($"Server={ServerConfiguration.DatabaseServerIP};" +
                                                  $"User ID={ServerConfiguration.DatabaseUsername};" +
                                                  $"Password={ServerConfiguration.DatabasePassword};" +
-                                                 $"Database={ServerConfiguration.DatabaseName}");
+                                                 $"Database={ServerConfiguration.DatabaseName};" +
+                                                 $"Allow User Variables=True");
             await connection.OpenAsync();
 
             OsuServerDb database = new(connection);

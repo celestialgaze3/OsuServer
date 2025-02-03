@@ -1,4 +1,7 @@
 ﻿using MySqlConnector;
+using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Asn1.X509;
+using System.ComponentModel;
 
 namespace OsuServer.External.Database
 {
@@ -95,6 +98,42 @@ namespace OsuServer.External.Database
             }
 
             return null;
+        }
+
+        public async Task<int> GetRankAsync(T row, string orderByColumn)
+        {
+            await _database.EnsureConnectionOpen();
+            DbColumn[] identifyingColumns = row.GetIdentifyingColumns();
+
+            Dictionary<string, object?> values = new();
+            foreach (var column in identifyingColumns)
+            {
+                values.Add(column.Name, column.Object);
+            }
+
+            DbClause whereClause = new DbClause(
+                "WHERE",
+                string.Join(" AND ", identifyingColumns.Select(entry => $"{entry.Name} = {entry.Object}")),
+                values
+            );
+
+            string identifyingColumnsSelect = string.Join(
+                ", ",
+                identifyingColumns.Select(entry => $"{Name}.{entry.Name}")
+            );
+
+            // Can't figure out how to parameterize this and have user variables at the same time. Not a big issue though
+            var command = new MySqlCommand($"SELECT ordered.position " +
+                $"FROM (SELECT {identifyingColumnsSelect}, {Name}.{orderByColumn}, (@pos := @pos + 1) AS position " +
+                $"FROM {Name} JOIN (SELECT @pos := 0) AS x " +
+                $"ORDER BY {Name}.{orderByColumn} DESC) AS ordered " +
+                $"{whereClause.PrepareString()}", _connection);
+
+            LogSqlCommand(command);
+
+            double? rank = (double?)await command.ExecuteScalarAsync();
+            if (rank == null) return 0;
+            return (int)rank;
         }
 
         /// <summary>
