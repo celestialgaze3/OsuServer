@@ -11,7 +11,7 @@ namespace OsuServer.API.Packets.Client
         {
             string channelName = reader.ReadOsuString().Substring(1); // Remove "#" at beginning
             Channel? channel = Bancho.GetChannel(channelName);
-            Player? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = Bancho.GetPlayer(Token);
 
             if (player == null) return;
 

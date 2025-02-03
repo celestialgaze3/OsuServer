@@ -26,7 +26,7 @@ namespace OsuServer.State
         /// </summary>
         /// <param name="player">The player to add</param>
         /// <returns>Whether or not the operation was successful</returns>
-        public bool AddPlayer(Player player)
+        public bool AddPlayer(OnlinePlayer player)
         {
             if (!CanJoin(player))
             {
@@ -38,7 +38,7 @@ namespace OsuServer.State
             return true;
         }
 
-        public bool CanJoin(Player player)
+        public bool CanJoin(OnlinePlayer player)
         {
             return Joinable;
         }
@@ -49,7 +49,7 @@ namespace OsuServer.State
             return this;
         }
 
-        private void OnJoin(Player player)
+        private void OnJoin(OnlinePlayer player)
         {
             UpdateChannelInfoAll();
         }
@@ -65,13 +65,13 @@ namespace OsuServer.State
 
         private void UpdateChannelInfo(int playerId)
         {
-            Player? player = _bancho.GetPlayer(playerId);
+            OnlinePlayer? player = _bancho.GetPlayer(playerId);
             if (player == null) return;
 
             player.Connection.AddPendingPacket(new ChannelPacket(this, player.Connection.Token, _bancho));
         }
 
-        public bool HasMember(Player player)
+        public bool HasMember(OnlinePlayer player)
         {
             return Members.Contains(player.Id);
         }
@@ -80,7 +80,7 @@ namespace OsuServer.State
         {
             foreach (int memberId in Members)
             {
-                Player? member = _bancho.GetPlayer(memberId);
+                OnlinePlayer? member = _bancho.GetPlayer(memberId);
                 if (member == null) continue;
 
                 if (member.Id != message.SenderId)
@@ -90,7 +90,7 @@ namespace OsuServer.State
             }
         }
 
-        public void RemovePlayer(Player player)
+        public void RemovePlayer(OnlinePlayer player)
         {
             if (!Members.Contains(player.Id)) return;
             Members.Remove(player.Id);
@@ -102,13 +102,13 @@ namespace OsuServer.State
             // TODO: players who are not in the channel will not be updated with its usercount
         }
 
-        public void KickPlayer(Player player)
+        public void KickPlayer(OnlinePlayer player)
         {
             RemovePlayer(player);
             player.Connection.AddPendingPacket(new ChannelKickPacket(Name, player.Connection.Token, _bancho));
         }
 
-        public void SendInfo(Player player)
+        public void SendInfo(OnlinePlayer player)
         {
             player.Connection.AddPendingPacket(new ChannelPacket(this, player.Connection.Token, _bancho));
             if (ShouldAutoJoin)

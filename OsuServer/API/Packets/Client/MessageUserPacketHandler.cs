@@ -10,7 +10,7 @@ namespace OsuServer.API.Packets.Client
 
         protected override void Handle(ref BinaryReader reader)
         {
-            Player? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = Bancho.GetPlayer(Token);
 
             if (player == null) return;
 
@@ -22,7 +22,7 @@ namespace OsuServer.API.Packets.Client
 
             string content = message.Text.Trim();
 
-            Player? recipient = Bancho.GetPlayerByUsername(message.Recipient);
+            OnlinePlayer? recipient = Bancho.GetPlayerByUsername(message.Recipient);
 
             if (recipient == null)
             {

@@ -1,4 +1,6 @@
-﻿using OsuServer.External.OsuV2Api;
+﻿using OsuServer.External.Database;
+using OsuServer.External.Database.Rows;
+using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using System.Numerics;
 using static OsuServer.State.BanchoBeatmap;
@@ -25,7 +27,7 @@ namespace OsuServer.State
         /// <param name="player">The player that set the score</param>
         /// <param name="score">The score that was set</param>
         /// <returns>The old best score data for display on the submission screen</returns>
-        public ScoreStats UpdateWithScore(Player player, SubmittedScore score)
+        public ScoreStats UpdateWithScore(OnlinePlayer player, SubmittedScore score)
         {
             if (!_allScores.ContainsKey(player.Id))
                 _allScores.Add(player.Id, new List<int>());
@@ -44,7 +46,7 @@ namespace OsuServer.State
         /// </summary>
         /// <param name="player">The player that set the score</param>
         /// <param name="score">The score to add</param>
-        public void AddScore(Player player, SubmittedScore score)
+        public void AddScore(OnlinePlayer player, SubmittedScore score)
         {
             if (!_allScores.ContainsKey(player.Id))
                 _allScores.Add(player.Id, new List<int>());

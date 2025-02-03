@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Primitives;
+using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
@@ -9,9 +10,11 @@ using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
 using OsuServer.External.Database.Tables;
+using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using OsuServer.State;
 using OsuServer.Util;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -53,7 +56,7 @@ namespace OsuServer.API
                 osuToken = osuTokenHeader.ToString();
             }
 
-            Player? player = Bancho.GetPlayer(osuToken);
+            OnlinePlayer? player = Bancho.GetPlayer(osuToken);
 
             // Server has restarted and this client is still logged in
             if (player == null)
@@ -193,7 +196,7 @@ namespace OsuServer.API
 
             // Create a connection and player instances for this client
             Connection connection = Bancho.CreateConnection(osuToken);
-            Player player = await Bancho.CreatePlayer(database, account.Id.Value, connection, loginData);
+            OnlinePlayer player = await Bancho.CreatePlayer(database, account.Id.Value, connection, loginData);
 
             // We now need to send packet information: starting with the protocol version. This is always 19.
             connection.AddPendingPacket(new ProtocolVersionPacket(19, osuToken, Bancho));
@@ -386,7 +389,7 @@ namespace OsuServer.API
             /* Get the player instance (since we don't have the osu-token) by the username passwordMD5 combination
              * We aren't just getting by username to prevent spoofed score submissions (while I'm not sure if that's 
              * possible either way). */
-            Player? player = Bancho.GetPlayer(username, passwordMD5);
+            OnlinePlayer? player = Bancho.GetPlayer(username, passwordMD5);
 
             if (player == null)
             {
@@ -579,6 +582,115 @@ namespace OsuServer.API
             }
 
             return Results.Ok();
+        }
+
+        public async Task<IResult> HandleLeaderboardRequest(HttpContext context)
+        {
+            OsuServerDb database = await Program.GetDbConnection();
+            HttpRequest request = context.Request;
+            HttpResponse response = context.Response;
+
+            Console.WriteLine($" - New leaderboard request from {GetRequestIP(context)} - ");
+
+            // All parameters of this GET request
+            bool editSongSelect = request.Query["s"] != 0;
+            int leaderboardVersion = Int32.Parse(request.Query["vv"].ToString());
+            int leaderboardType = Int32.Parse(request.Query["v"].ToString());
+            string beatmapMD5 = request.Query["c"].ToString();
+            string filename = request.Query["f"].ToString();
+            GameMode gamemode = (GameMode)Int32.Parse(request.Query["m"].ToString());
+            int mapSetId = Int32.Parse(request.Query["i"].ToString());
+            Mods mods = new Mods(Int32.Parse(request.Query["mods"].ToString()));
+            string mapHash = request.Query["h"].ToString();
+            bool a = request.Query["a"] != 0;
+            string username = request.Query["us"].ToString();
+            string passwordMD5 = request.Query["ha"].ToString();
+
+            // Get beatmap information
+            BanchoBeatmap beatmap = await Bancho.GetBeatmap(beatmapMD5);
+
+            // Get player information
+            OnlinePlayer? player = Bancho.GetPlayer(username, passwordMD5);
+
+            // Player is signed out
+            if (player == null)
+            {
+                // Wait for eventual reconnect
+                return Results.Ok();
+            }
+
+            // Get top 50 scores and player's personal best on the beatmap
+            List<DbScore> topScores = await DbScore.GetTopScoresAsync(database, beatmap);
+            DbScore? playerTopScore = await DbScore.GetTopScoreAsync(database, beatmap, player);
+            long totalScoreCount = await database.Score.GetRowCountAsync(
+                new DbClause(
+                    "WHERE",
+                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND is_pass = 1", 
+                    new() { 
+                        ["beatmap_id"] = beatmap.Info.Id 
+                    }
+                )
+            );
+            int playerRank = 0;
+            
+            if (playerTopScore != null) 
+                playerRank = await database.Score.GetRankAsync(
+                    playerTopScore, 
+                    "total_score", 
+                    $"beatmap_id = {beatmap.Info.Id} AND is_pass = 1"
+                );
+
+            // hehe TODO: custom ranking
+            if (beatmap.Info.UserId == 10321695)
+                beatmap.Info.RankStatus = RankStatus.Ranked;
+
+            List<string> responseBody = new()
+            {
+                // RankStatus|HasOsz2|BeatmapId|BeatmapSetId|ScoreCount|FeaturedArtistTrackId|FeaturedArtistLicense
+                $"{beatmap.Info.RankStatus.ValueGetScores}|false|{beatmap.Info.Id}|{beatmap.Info.BeatmapSetId}|{totalScoreCount}|0|",
+                // Server offset
+                beatmap.Info.BeatmapSet != null ? $"{beatmap.Info.BeatmapSet.Offset}" : "0",
+                // Beatmap name
+                beatmap.Info.BeatmapSet != null ? $"{beatmap.Info.FullName}" : string.Empty,
+                // TODO: Average rating
+                "0"
+            };
+
+            // No scores on the map, no need to return anything else
+            if (topScores.Count == 0)
+            {
+                await response.Body.WriteAsync(Encoding.UTF8.GetBytes(string.Join("\n", responseBody)));
+                return Results.Ok();
+            }
+
+            // Add personal best score first
+            if (playerTopScore != null)
+            {
+                responseBody.Add(await GetScoreString(database, playerTopScore, playerRank));
+            } else
+            {
+                responseBody.Add("");
+            }
+
+            // Add rest of leaderboard
+            int rank = 0;
+            foreach (var score in topScores)
+            {
+                rank++;
+                responseBody.Add(await GetScoreString(database, score, rank));
+            }
+
+            await response.Body.WriteAsync(Encoding.UTF8.GetBytes(string.Join("\n", responseBody)));
+            return Results.Ok();
+        }
+        
+        private async Task<string> GetScoreString(OsuServerDb database, DbScore dbScore, int rank)
+        {
+            Score score = await Score.Get(Bancho, dbScore);
+            return $"{dbScore.Id.Value}|{await score.Player.GetUsername(database)}|{score.TotalScore}|{score.MaxCombo}|" +
+                $"{score.Bads}|{score.Goods}|{score.Perfects}|{score.Misses}|{score.Katus}|{score.Gekis}|" +
+                $"{score.PerfectCombo}|{score.Mods.IntValue}|{score.Player.Id}|{rank}|{score.Timestamp / 1000}|" +
+                $"0"; // TODO: has replay (need replay saving system)
         }
 
         private string GetRequestIP(HttpContext context)

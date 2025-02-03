@@ -17,7 +17,7 @@ namespace OsuServer.State
         {
             _bancho = bancho;
         }
-        public async Task<SubmittedScore> Submit(OsuServerDb database, Player player, Score score, string scoreChecksum)
+        public async Task<SubmittedScore> Submit(OsuServerDb database, OnlinePlayer player, Score score, string scoreChecksum)
         {
             if (IsSubmitted(scoreChecksum)) 
                 return _idToScore[_checksumToId[scoreChecksum]];
@@ -44,7 +44,7 @@ namespace OsuServer.State
         /// </summary>
         /// <param name="player">The player to get the scores from</param>
         /// <returns></returns>
-        public async Task UpdateFromDb(OsuServerDb database, Player player)
+        public async Task UpdateFromDb(OsuServerDb database, OnlinePlayer player)
         {
             List<DbScore> scores = await database.Score.FetchManyAsync(
                 new DbClause(
@@ -60,7 +60,7 @@ namespace OsuServer.State
             {
                 Score score = await Score.Get(_bancho, dbScore);
                 int id = (int) dbScore.Id.Value;
-                SubmittedScore submittedScore = new SubmittedScore(score, id);
+                SubmittedScore submittedScore = new(score, id);
 
                 _idToScore[id] = submittedScore;
                 score.Beatmap.AddScore(player, submittedScore);

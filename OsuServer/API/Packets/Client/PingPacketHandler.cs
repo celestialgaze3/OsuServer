@@ -12,7 +12,7 @@ namespace OsuServer.API.Packets.Client
             /* As far as I can tell, this packet is only sent to poll the server for pending packets.
              * We don't need to do anything here. */
 
-            Player? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = Bancho.GetPlayer(Token);
             if (player == null) return;
 
             Console.WriteLine("Received a ping from " + player.Username);

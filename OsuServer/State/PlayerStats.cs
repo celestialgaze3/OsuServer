@@ -8,7 +8,7 @@ namespace OsuServer.State
     public class PlayerStats
     {
 
-        private Player _player;
+        private OnlinePlayer _player;
         private ProfileStats _profileStats;
 
         public ProfileStats Values
@@ -19,7 +19,7 @@ namespace OsuServer.State
             }
         }
 
-        public PlayerStats(Player player) {
+        public PlayerStats(OnlinePlayer player) {
             _player = player;
             _profileStats = new ProfileStats();
         }

@@ -98,48 +98,6 @@ namespace OsuServer.External.Database
         }
 
         /// <summary>
-        /// Gets the ordered index of a row when sorted by one of its columns
-        /// </summary>
-        /// <param name="row">The row to get the ordered index of</param>
-        /// <param name="orderByColumn">The column name to order by</param>
-        /// <returns>The index of this column</returns>
-        public async Task<int> GetRankAsync(T row, string orderByColumn)
-        {
-            await _database.EnsureConnectionOpen();
-            DbColumn[] identifyingColumns = row.GetIdentifyingColumns();
-
-            Dictionary<string, object?> values = new();
-            foreach (var column in identifyingColumns)
-            {
-                values.Add(column.Name, column.Object);
-            }
-
-            DbClause whereClause = new DbClause(
-                "WHERE",
-                string.Join(" AND ", identifyingColumns.Select(entry => $"{entry.Name} = {entry.Object}")),
-                values
-            );
-
-            string identifyingColumnsSelect = string.Join(
-                ", ",
-                identifyingColumns.Select(entry => $"{Name}.{entry.Name}")
-            );
-
-            // Can't figure out how to parameterize this and have user variables at the same time. Not a big issue though
-            var command = new MySqlCommand($"SELECT ordered.position " +
-                $"FROM (SELECT {identifyingColumnsSelect}, {Name}.{orderByColumn}, (@pos := @pos + 1) AS position " +
-                $"FROM {Name} JOIN (SELECT @pos := 0) AS x " +
-                $"ORDER BY {Name}.{orderByColumn} DESC) AS ordered " +
-                $"{whereClause.PrepareString()}", _connection);
-
-            LogSqlCommand(command);
-
-            double? rank = (double?)await command.ExecuteScalarAsync();
-            if (rank == null) return 0;
-            return (int)rank;
-        }
-
-        /// <summary>
         /// Gets a list of <typeparamref name="T"/> from this table
         /// </summary>
         /// <param name="clauses">The clauses to add to the select statement</param>
@@ -174,6 +132,50 @@ namespace OsuServer.External.Database
         }
 
         /// <summary>
+        /// Gets the ordered index of a row when sorted by one of its columns
+        /// </summary>
+        /// <param name="row">The row to get the ordered index of</param>
+        /// <param name="orderByColumn">The column name to order by</param>
+        /// <returns>The index of this column</returns>
+        public async Task<int> GetRankAsync(T row, string orderByColumn, string innerWhereClause = "")
+        {
+            await _database.EnsureConnectionOpen();
+            DbColumn[] identifyingColumns = row.GetIdentifyingColumns();
+
+            Dictionary<string, object?> values = new();
+            foreach (var column in identifyingColumns)
+            {
+                values.Add(column.Name, column.Object);
+            }
+
+            DbClause whereClause = new DbClause(
+                "WHERE",
+                string.Join(" AND ", identifyingColumns.Select(entry => $"{entry.Name} = {entry.Object}")),
+                values
+            );
+
+            string identifyingColumnsSelect = string.Join(
+                ", ",
+                identifyingColumns.Select(entry => $"{Name}.{entry.Name}")
+            );
+
+            // Can't figure out how to parameterize this and have user variables at the same time. Not a big issue though
+            var command = new MySqlCommand($"SELECT ordered.position " +
+                $"FROM (SELECT {identifyingColumnsSelect}, {Name}.{orderByColumn}, (@pos := @pos + 1) AS position " +
+                $"FROM {Name} JOIN (SELECT @pos := 0) AS x " +
+                // TODO: scuffed as hell, but will be fixed if i figure out above
+                (innerWhereClause != string.Empty ? $"WHERE {innerWhereClause} " : "") +
+                $"ORDER BY {Name}.{orderByColumn} DESC) AS ordered " +
+                $"{whereClause.PrepareString()}", _connection);
+
+            LogSqlCommand(command);
+
+            double? rank = (double?)await command.ExecuteScalarAsync();
+            if (rank == null) return 0;
+            return (int)rank;
+        }
+
+        /// <summary>
         /// Inserts a row into this table
         /// </summary>
         /// <param name="insertion">The <typeparamref name="T"/> to insert</param>
@@ -205,6 +207,28 @@ namespace OsuServer.External.Database
                 U insertionResult = await ReadInsertion(reader);
                 return insertionResult;
             }
+        }
+
+        public async Task<long> GetRowCountAsync(params DbClause[] clauses)
+        {
+            await _database.EnsureConnectionOpen();
+
+            var command = new MySqlCommand($"SELECT COUNT(*) FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+
+            if (_database.Transaction != null)
+                command.Transaction = _database.Transaction;
+
+            foreach (var clause in clauses)
+            {
+                clause.AddParameters(command);
+            }
+
+            LogSqlCommand(command);
+            await command.PrepareAsync();
+
+            long? count = (long?)await command.ExecuteScalarAsync();
+            if (count == null) return 0;
+            return (long)count;
         }
 
         /// <summary>

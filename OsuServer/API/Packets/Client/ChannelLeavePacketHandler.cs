@@ -21,7 +21,7 @@ namespace OsuServer.API.Packets.Client
             }
 
             Channel? channel = Bancho.GetChannel(channelName);
-            Player? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = Bancho.GetPlayer(Token);
 
             if (player == null) return;
 

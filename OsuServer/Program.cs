@@ -53,6 +53,9 @@ namespace OsuServer
             // Account registration
             app.MapPost("/users", async (HttpContext context) => await s_BanchoEndpoint.HandleAccountRegistration(context));
 
+            // Score submission
+            app.MapGet("/web/osu-osz2-getscores.php", async (HttpContext context) => await s_BanchoEndpoint.HandleLeaderboardRequest(context));
+
             app.Run();
         }
 

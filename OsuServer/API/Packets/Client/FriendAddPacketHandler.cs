@@ -9,11 +9,11 @@ namespace OsuServer.API.Packets.Client
         protected override void Handle(ref BinaryReader reader)
         {
             int id = reader.ReadInt32();
-            Player? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = Bancho.GetPlayer(Token);
 
             if (player == null) return;
 
-            Player? toAdd = Bancho.GetPlayer(id);
+            OnlinePlayer? toAdd = Bancho.GetPlayer(id);
 
             if (toAdd == null)
             {

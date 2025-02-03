@@ -4,8 +4,8 @@ namespace OsuServer.API.Packets.Server
 {
     public class UserPresencePacket : ServerPacket
     {
-        Player Player;
-        public UserPresencePacket(Player player, string osuToken, Bancho bancho) : base((int) ServerPacketType.UserPresence, osuToken, bancho) 
+        OnlinePlayer Player;
+        public UserPresencePacket(OnlinePlayer player, string osuToken, Bancho bancho) : base((int) ServerPacketType.UserPresence, osuToken, bancho) 
         {
             Player = player;
         }

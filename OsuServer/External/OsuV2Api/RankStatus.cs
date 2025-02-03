@@ -13,6 +13,16 @@
         public static RankStatus[] Values = { Graveyard, Wip, Pending, Ranked, Approved, Qualified, Loved };
 
         public int ValueInt { get; private set; }
+        public int ValueGetScores {
+            get
+            {
+                if (ValueInt <= 0)
+                    return 0; // Pending
+
+                // ValueInt >= 1 here
+                return ValueInt + 1; // offset by "UpdateAvailable"
+            }
+        }
         public string ValueString { get; private set; }
         private RankStatus(int valueInt, string valueString)
         {

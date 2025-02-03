@@ -12,7 +12,7 @@ namespace OsuServer.API.Packets.Client
         /// </summary>
         protected override void Handle(ref BinaryReader reader)
         {
-            Player? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = Bancho.GetPlayer(Token);
 
             if (player == null) return;
 

@@ -9,7 +9,7 @@ namespace OsuServer.API.Packets.Client
         protected override void Handle(ref BinaryReader reader)
         {
             int info = reader.ReadInt32(); // 4 bytes in packet, not sure of the use
-            Player? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = Bancho.GetPlayer(Token);
 
             if (player == null) return;
 

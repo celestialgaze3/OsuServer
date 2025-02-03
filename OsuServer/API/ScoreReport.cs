@@ -9,12 +9,12 @@ namespace OsuServer.API
     {
         private Bancho _bancho;
         private BeatmapExtended _beatmap;
-        private Player _player;
+        private OnlinePlayer _player;
         private ProfileStats _oldStats;
         private ProfileStats _newStats;
         private ScoreStats _oldScore;
         public ScoreStats _newScore;
-        public ScoreReport(Bancho bancho, BeatmapExtended beatmap, Player player, ProfileStats oldStats, ProfileStats newStats, ScoreStats oldScore, ScoreStats newScore)
+        public ScoreReport(Bancho bancho, BeatmapExtended beatmap, OnlinePlayer player, ProfileStats oldStats, ProfileStats newStats, ScoreStats oldScore, ScoreStats newScore)
         {
             _bancho = bancho;
             _oldScore = oldScore;

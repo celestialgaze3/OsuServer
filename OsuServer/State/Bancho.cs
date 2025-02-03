@@ -1,5 +1,4 @@
-﻿using MySqlConnector;
-using OsuServer.API;
+﻿using OsuServer.API;
 using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.External.OsuV2Api.Requests;
@@ -15,7 +14,7 @@ namespace OsuServer.State
         private Dictionary<string, int> _tokenToPlayerId = [];
         private Dictionary<string, int> _nameToPlayerId = [];
         private Dictionary<string, int> _usernamePasswordMD5ToPlayerId = []; // For identifying players from submitted scores
-        private Dictionary<int, Player> _playerIdToPlayer = [];
+        private Dictionary<int, OnlinePlayer> _playerIdToPlayer = [];
         private Dictionary<string, Connection> _tokenToConnection = [];
 
         private Dictionary<string, Channel> _nameToChannel = [];
@@ -37,7 +36,7 @@ namespace OsuServer.State
             CreateChannel("osu2", "Default channel2").AutoJoin();
         }
 
-        public List<Player> GetPlayers()
+        public List<OnlinePlayer> GetPlayers()
         {
             return _playerIdToPlayer.Values.ToList();
         }
@@ -61,18 +60,18 @@ namespace OsuServer.State
             return connection;
         }
 
-        public async Task<Player> CreatePlayer(OsuServerDb database, int id, Connection connection, LoginData data)
+        public async Task<OnlinePlayer> CreatePlayer(OsuServerDb database, int id, Connection connection, LoginData data)
         {
             if (_tokenToPlayerId.ContainsKey(connection.Token)) return _playerIdToPlayer[_tokenToPlayerId[connection.Token]];
 
-            Player player = new Player(id, this, connection, data);
+            OnlinePlayer player = new OnlinePlayer(id, this, connection, data);
             await OnPlayerConnect(database, player);
             _tokenToPlayerId[connection.Token] = player.Id;
-            _nameToPlayerId[player.Username] = player.Id;
+            _nameToPlayerId[await player.GetUsername(database)] = player.Id;
             _playerIdToPlayer[player.Id] = player;
 
             // Map username + passwords to player IDs
-            _usernamePasswordMD5ToPlayerId[player.Username + "#" + player.LoginData.Password] = player.Id;
+            _usernamePasswordMD5ToPlayerId[await player.GetUsername(database) + "#" + player.LoginData.Password] = player.Id;
             return player;
         }
 
@@ -92,6 +91,8 @@ namespace OsuServer.State
 
             _beatmapMD5ToBeatmapId.Add(beatmapMD5, id);
             _beatmapIdToBeatmap.Add(id, beatmap);
+
+            // TODO: Save to database to avoid osu! API spam on server restarts
 
             return beatmap;
         }
@@ -134,26 +135,34 @@ namespace OsuServer.State
             return _tokenToConnection[token];
         }
 
-        public Player? GetPlayer(string token)
+        public OnlinePlayer? GetPlayer(string token)
         {
             if (!_tokenToPlayerId.ContainsKey(token)) return null;
             return _playerIdToPlayer[_tokenToPlayerId[token]];
         }
 
-        public Player? GetPlayer(int id)
+        public OnlinePlayer? GetPlayer(int id)
         {
             if (!_playerIdToPlayer.ContainsKey(id)) return null;
             return _playerIdToPlayer[id];
         }
 
-        public Player? GetPlayer(string username, string passwordMD5)
+        public Player GetOfflinePlayer(int id)
+        {
+            if (_playerIdToPlayer.ContainsKey(id)) 
+                return _playerIdToPlayer[id];
+
+            return new Player(id);
+        }
+
+        public OnlinePlayer? GetPlayer(string username, string passwordMD5)
         {
             string key = username + "#" + passwordMD5;
             if (!_usernamePasswordMD5ToPlayerId.ContainsKey(key)) return null;
             return _playerIdToPlayer[_usernamePasswordMD5ToPlayerId[key]];
         }
 
-        public Player? GetPlayerByUsername(string name)
+        public OnlinePlayer? GetPlayerByUsername(string name)
         {
             if (!_nameToPlayerId.ContainsKey(name)) return null;
             return _playerIdToPlayer[_nameToPlayerId[name]];
@@ -165,9 +174,9 @@ namespace OsuServer.State
             return _nameToChannel[name];
         }
 
-        public async Task OnPlayerConnect(OsuServerDb database, Player player)
+        public async Task OnPlayerConnect(OsuServerDb database, OnlinePlayer player)
         {
-            foreach(Player onlinePlayer in GetPlayers())
+            foreach(OnlinePlayer onlinePlayer in GetPlayers())
             {
                 // Send each online player a copy of this user's info
                 onlinePlayer.Connection.AddPendingPacket(new UserPresencePacket(player, onlinePlayer.Connection.Token, this));
@@ -181,15 +190,15 @@ namespace OsuServer.State
             await player.UpdateFromDb(database);
         }
 
-        public void BroadcastUserUpdate(Player player)
+        public void BroadcastUserUpdate(OnlinePlayer player)
         {
-            foreach (Player onlinePlayer in GetPlayers())
+            foreach (OnlinePlayer onlinePlayer in GetPlayers())
             {
                 onlinePlayer.Connection.AddPendingPacket(new UserStatsPacket(player, onlinePlayer.Connection.Token, this));
             }
         }
 
-        public void RemovePlayer(Player player)
+        public void RemovePlayer(OnlinePlayer player)
         {
             _tokenToPlayerId.Remove(player.Connection.Token);
             _playerIdToPlayer.Remove(player.Id);
@@ -198,7 +207,7 @@ namespace OsuServer.State
             player.ClearState();
 
             // Broadcast logout
-            foreach (Player onlinePlayer in GetPlayers())
+            foreach (OnlinePlayer onlinePlayer in GetPlayers())
             {
                 onlinePlayer.Connection.AddPendingPacket(new LogoutPacket(player.Id, onlinePlayer.Connection.Token, this));
             }

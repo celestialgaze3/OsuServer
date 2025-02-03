@@ -72,7 +72,7 @@ namespace OsuServer.Objects
                 mods,
                 isPass,
                 gameMode,
-                bancho.GetPlayer((int)dbScore.AccountId.Value),
+                bancho.GetOfflinePlayer((int)dbScore.AccountId.Value),
                 await bancho.GetBeatmap((int)dbScore.BeatmapId.Value),
                 dbScore.SubmittedTime.Value
             );

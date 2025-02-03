@@ -17,6 +17,15 @@ namespace OsuServer.External.OsuV2Api
         public int[]? FailTimes { get; set; }
         public int? MaxCombo { get; set; }
 
+        public string? FullName
+        {
+            get
+            {
+                if (BeatmapSet == null) return null;
+                return $"{BeatmapSet.Artist} - {BeatmapSet.Title} [{Version}]";
+            }
+        }
+
         public Beatmap(JToken json)
         {
             // TODO: make some extension method thingy that would take care of invalid data sent from api and remove these warnings
