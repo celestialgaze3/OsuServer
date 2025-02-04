@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace OsuServer.External.OsuV2Api
 {
@@ -15,6 +16,7 @@ namespace OsuServer.External.OsuV2Api
         public BeatmapSet? BeatmapSet { get; set; }
         public string? Checksum { get; set; }
         public int[]? FailTimes { get; set; }
+        public int[]? ExitTimes { get; set; }
         public int? MaxCombo { get; set; }
 
         public string? FullName
@@ -26,7 +28,7 @@ namespace OsuServer.External.OsuV2Api
             }
         }
 
-        public Beatmap(JToken json)
+        public Beatmap(JObject json)
         {
             // TODO: make some extension method thingy that would take care of invalid data sent from api and remove these warnings
             BeatmapSetId = (int)json["beatmapset_id"];
@@ -37,11 +39,33 @@ namespace OsuServer.External.OsuV2Api
             TotalLength = (int) json["total_length"];
             UserId = (int) json["user_id"];
             Version = (string) json["version"];
-
             BeatmapSet = new BeatmapSet(json["beatmapset"]);
             Checksum = (string?) json["checksum"];
-            //FailTimes = failTimes;
+            if (json.ContainsKey("failtimes"))
+            {
+                FailTimes = JsonConvert.DeserializeObject<int[]>(json["failtimes"]["fail"].ToString());
+                ExitTimes = JsonConvert.DeserializeObject<int[]>(json["failtimes"]["exit"].ToString());
+            }
             MaxCombo = (int?) json["max_combo"];
+        }
+
+        public Beatmap(int id, int beatmapSetId, float difficultyRating, Ruleset mode, RankStatus status, 
+            int totalLength, int userId, string version, BeatmapSet? beatmapSet, string? checksum, int[]? failTimes,
+            int[]? exitTimes, int? maxCombo)
+        {
+            BeatmapSetId = beatmapSetId;
+            DifficultyRating = difficultyRating;
+            Id = id;
+            Mode = mode;
+            Status = status;
+            TotalLength = totalLength;
+            UserId = userId;
+            Version = version;
+            BeatmapSet = beatmapSet;
+            Checksum = checksum;
+            FailTimes = failTimes;
+            ExitTimes = exitTimes;
+            MaxCombo = maxCombo;
         }
     }
 }

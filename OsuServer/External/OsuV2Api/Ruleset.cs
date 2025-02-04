@@ -2,38 +2,68 @@
 {
     public class Ruleset
     {
-        public static Ruleset Standard => new Ruleset("osu");
-        public static Ruleset Mania => new Ruleset("mania");
-        public static Ruleset Taiko => new Ruleset("taiko");
-        public static Ruleset Catch => new Ruleset("fruits");
+        public static Ruleset Standard => new Ruleset(0, "osu");
+        public static Ruleset Mania => new Ruleset(1, "mania");
+        public static Ruleset Taiko => new Ruleset(2, "taiko");
+        public static Ruleset Catch => new Ruleset(3, "fruits");
+
         public static Ruleset[] Values = { Standard, Mania, Taiko, Catch };
 
-        public string Value { get; private set; }
-        private Ruleset(string value)
+        public int ValueInt { get; private set; }
+        public string ValueString { get; private set; }
+
+        private Ruleset(int valueInt, string valueString)
         {
-            Value = value;
+            ValueInt = valueInt;
+            ValueString = valueString;
         }
 
         public override string ToString()
         {
-            return Value;
+            return ValueString;
         }
 
         public static Ruleset FromString(string str)
         {
             foreach (Ruleset ruleset in Values)
             {
-                if (ruleset.Value == str)
+                if (ruleset.ValueString == str)
                     return ruleset;
             }
 
             throw new ArgumentException($"Argument {str} does not match a value in Ruleset");
         }
 
+        public static Ruleset FromInt(int integer)
+        {
+            foreach (Ruleset ruleset in Values)
+            {
+                if (ruleset.ValueInt == integer)
+                    return ruleset;
+            }
+
+            throw new ArgumentException($"Argument {integer} does not match a value in Ruleset");
+        }
+
 
         public static implicit operator string(Ruleset ruleset)
         {
-            return ruleset.Value;
+            return ruleset.ValueString;
+        }
+
+        public static implicit operator int(Ruleset ruleset)
+        {
+            return ruleset.ValueInt;
+        }
+
+        public static bool operator ==(Ruleset lhs, Ruleset rhs)
+        {
+            return lhs.ValueInt == rhs.ValueInt;
+        }
+
+        public static bool operator !=(Ruleset lhs, Ruleset rhs)
+        {
+            return lhs.ValueInt != rhs.ValueInt;
         }
     }
 }

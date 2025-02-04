@@ -17,18 +17,19 @@ namespace OsuServer.External.OsuV2Api
         public int HitLength { get; set; }
         public bool IsScoreable { get; set; }
         public DateTime LastUpdated {  get; set; }
-        public int ModeInt { get; set; }
+        public Ruleset ModeInt { get; set; }
         public int Passcount { get; set; }
         public int Playcount { get; set; }
-        public RankStatus RankStatus { get; set; }
+        public RankStatus Ranked { get; set; }
         public string Url { get; set; }
 
-        public BeatmapExtended(JToken json)
+        public BeatmapExtended(JObject json)
             : base(json)
         {
             Accuracy = (float) json["accuracy"];
             ApproachRate = (float)json["ar"];
             BPM = (float?)json["bpm"];
+            Console.WriteLine(BPM);
             IsConvert = (bool)json["convert"];
             CountCircles = (int)json["count_circles"];
             CountSliders = (int)json["count_sliders"];
@@ -40,13 +41,41 @@ namespace OsuServer.External.OsuV2Api
             HitLength = (int)json["hit_length"];
             IsScoreable = (bool)json["is_scoreable"];
             LastUpdated = DateTime.Parse((string) json["last_updated"], null, System.Globalization.DateTimeStyles.RoundtripKind);
-            ModeInt = (int)json["mode_int"];
+            ModeInt = Ruleset.FromInt((int)json["mode_int"]);
             Passcount = (int)json["passcount"];
             Playcount = (int)json["playcount"];
-            RankStatus = RankStatus.FromInt((int)json["ranked"]);
+            Ranked = RankStatus.FromInt((int)json["ranked"]);
             Url = (string)json["url"];
 
             // TODO: make some extension method thingy that would take care of invalid data sent from api and remove these warnings
+        }
+
+        public BeatmapExtended(int id, int beatmapSetId, float difficultyRating, Ruleset mode, RankStatus status,
+            int totalLength, int userId, string version, BeatmapSet? beatmapSet, string? checksum, int[]? failTimes,
+            int[]? exitTimes, int? maxCombo, float accuracy, float approachRate, float? bpm, bool isConvert, 
+            int countCircles, int countSliders, int countSpinners, float circleSize, DateTime? deletedAt, float hPDrain, 
+            int hitLength, bool isScoreable, DateTime lastUpdated, int passcount, int playcount, string url) 
+                : base(id, beatmapSetId, difficultyRating, mode, status, totalLength, userId, version, beatmapSet,
+                checksum, failTimes, exitTimes, maxCombo)
+        {
+            Accuracy = accuracy;
+            ApproachRate = approachRate;
+            BPM = bpm;
+            IsConvert = isConvert;
+            CountCircles = countCircles;
+            CountSliders = countSliders;
+            CountSpinners = countSpinners;
+            CircleSize = circleSize;
+            DeletedAt = deletedAt;
+            HPDrain = hPDrain;
+            HitLength = hitLength;
+            IsScoreable = isScoreable;
+            LastUpdated = lastUpdated;
+            ModeInt = mode;
+            Passcount = passcount;
+            Playcount = playcount;
+            Ranked = status;
+            Url = url;
         }
     }
 }

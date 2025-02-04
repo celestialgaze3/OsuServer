@@ -25,7 +25,7 @@ namespace OsuServer.State
             await database.StartTransaction();
             DbScore dbScore = await DbScore.PrepareInsertion(database, score);
 
-            int assignedScoreId = await database.Score.InsertAsync(dbScore);
+            int assignedScoreId = await database.Score.InsertAsync(dbScore, false);
             await database.CommitTransaction();
 
             dbScore.Id.Value = (uint) assignedScoreId;
@@ -60,7 +60,7 @@ namespace OsuServer.State
 
             foreach (DbScore dbScore in scores)
             {
-                Score score = await Score.Get(_bancho, dbScore);
+                Score score = await Score.Get(database, _bancho, dbScore);
                 int id = (int) dbScore.Id.Value;
                 SubmittedScore submittedScore = new(score, id);
 

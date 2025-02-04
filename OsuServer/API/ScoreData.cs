@@ -1,4 +1,5 @@
-﻿using OsuServer.Objects;
+﻿using OsuServer.External.Database;
+using OsuServer.Objects;
 using OsuServer.State;
 
 namespace OsuServer.API
@@ -13,10 +14,11 @@ namespace OsuServer.API
         public int ClientNum { get; private set; } // Note: info stored here
         public DateTime SubmittedTime { get; private set; }
 
-        public static async Task<ScoreData> GetInstance(Bancho bancho, string[] submissionArgs)
+        public static async Task<ScoreData> GetInstance(OsuServerDb database, Bancho bancho, string[] submissionArgs)
         {
             return new()
             {
+
                 BeatmapMD5 = submissionArgs[0],
                 PlayerUsername = submissionArgs[1],
                 Checksum = submissionArgs[2],
@@ -34,7 +36,7 @@ namespace OsuServer.API
                     passed: submissionArgs[14] == "True",
                     gameMode: (GameMode)Int32.Parse(submissionArgs[15]),
                     player: bancho.GetPlayerByUsername(submissionArgs[1]),
-                    beatmap: await bancho.GetBeatmap(submissionArgs[0]),
+                    beatmap: await bancho.GetBeatmap(database, submissionArgs[0]),
                     timestamp: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
                 ),
                 ClientTime = submissionArgs[16], // TODO: parse DateTime

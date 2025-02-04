@@ -2,10 +2,10 @@
 
 namespace OsuServer.External.OsuV2Api
 {
-    public class BeatmapSetExtended : BeatmapExtended
+    public class BeatmapSetExtended : BeatmapSet
     {
         // TODO: implement https://osu.ppy.sh/docs/index.html#beatmapsetextended
-        public BeatmapSetExtended(JToken json) : base(json)
+        public BeatmapSetExtended(JObject json) : base(json)
         {
 
         }

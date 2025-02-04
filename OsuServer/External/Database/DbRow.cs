@@ -21,7 +21,7 @@
         public Dictionary<string, object?> GetUpdateArguments()
         {
             Dictionary<string, object?> result = [];
-            foreach (DbColumn column in GetColumns()) 
+            foreach (DbColumn column in GetColumns())
             {
                 if (column.CanModify && column.HasBeenModified)
                 {

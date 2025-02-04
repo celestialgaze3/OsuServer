@@ -1,5 +1,4 @@
 ﻿using MySqlConnector;
-using System.Runtime.CompilerServices;
 
 namespace OsuServer.External.Database
 {
@@ -7,6 +6,11 @@ namespace OsuServer.External.Database
     {
         public MySqlTransaction? Transaction;
         public MySqlConnection MySqlConnection { get; set; }
+
+        /// <summary>
+        /// See <see cref="CleanConnection"/>
+        /// </summary>
+        public bool IsDirty { get; set; } = false;
 
         public DbInstance(MySqlConnection connection) 
         {
@@ -20,6 +24,26 @@ namespace OsuServer.External.Database
                 Console.WriteLine("Disconnected from MySQL database. Reconnecting...");
                 await MySqlConnection.OpenAsync();
                 Console.WriteLine("Complete!");
+            }
+        }
+
+        /// <summary>
+        /// There's no real need to do this. It's a very bodgy bug fix. 
+        /// An error was encountered when doing multiple inserts with the same connection:
+        /// "System.InvalidOperationException: Expected result set to have 0 columns, but it contains 1 columns."
+        /// The error would be thrown after attempting a second insert. Not sure what the root of the issue is. 
+        /// Also not sure how much time calling this wastes, but it's probably not insignificant. Ideally this 
+        /// should never be used.
+        /// </summary>
+        /// <returns></returns>
+        public async Task CleanConnection()
+        {
+            if (MySqlConnection.State == System.Data.ConnectionState.Open)
+            {
+                await MySqlConnection.CloseAsync();
+                await MySqlConnection.OpenAsync();
+
+                IsDirty = false;
             }
         }
 
@@ -50,6 +74,9 @@ namespace OsuServer.External.Database
             await Transaction.DisposeAsync();
 
             Transaction = null;
+
+            if (IsDirty)
+                await CleanConnection();
         }
 
         /// <summary>

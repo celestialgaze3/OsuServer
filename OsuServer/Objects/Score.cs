@@ -1,8 +1,7 @@
-﻿using OsuServer.External.Database.Rows;
+﻿using OsuServer.External.Database;
+using OsuServer.External.Database.Rows;
 using OsuServer.State;
 using OsuServer.Util;
-using System.Reflection.Metadata;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace OsuServer.Objects
@@ -48,7 +47,7 @@ namespace OsuServer.Objects
             Timestamp = timestamp;
         }
 
-        public static async Task<Score> Get(Bancho bancho, DbScore dbScore)
+        public static async Task<Score> Get(OsuServerDb database, Bancho bancho, DbScore dbScore)
         {
             GameMode gameMode = (GameMode)dbScore.GameMode.Value;
             Mods mods = new Mods(dbScore.Mods.Value);
@@ -73,7 +72,7 @@ namespace OsuServer.Objects
                 isPass,
                 gameMode,
                 bancho.GetOfflinePlayer((int)dbScore.AccountId.Value),
-                await bancho.GetBeatmap((int)dbScore.BeatmapId.Value),
+                await bancho.GetBeatmap(database, null, (int)dbScore.BeatmapId.Value),
                 dbScore.SubmittedTime.Value
             );
         }

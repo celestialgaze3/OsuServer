@@ -1,9 +1,5 @@
-﻿using OsuServer.External.Database;
-using OsuServer.External.Database.Rows;
-using OsuServer.External.OsuV2Api;
+﻿using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
-using System.Numerics;
-using static OsuServer.State.BanchoBeatmap;
 
 namespace OsuServer.State
 {
@@ -74,9 +70,9 @@ namespace OsuServer.State
         {
             // hehe TODO: custom ranking
             if (Info.UserId == 10321695)
-                Info.RankStatus = RankStatus.Ranked;
+                Info.Ranked = RankStatus.Ranked;
 
-            return Info.RankStatus;
+            return Info.Ranked;
         }
 
         public bool ShouldAwardStatIncrease()

@@ -27,7 +27,7 @@ namespace OsuServer.External.Database
         {
             await _database.EnsureConnectionOpen();
 
-            var command = new MySqlCommand("SELECT count(*) " +
+            using var command = new MySqlCommand("SELECT count(*) " +
                 "FROM information_schema.tables " +
                 $"WHERE table_schema = '{ServerConfiguration.DatabaseName}' " +
                 $"AND table_name = '{Name}'", _connection);
@@ -47,7 +47,7 @@ namespace OsuServer.External.Database
         {
             await _database.EnsureConnectionOpen();
 
-            var command = new MySqlCommand($"CREATE TABLE IF NOT EXISTS {Name} ({_schema});", _connection);
+            using var command = new MySqlCommand($"CREATE TABLE IF NOT EXISTS {Name} ({_schema});", _connection);
             LogSqlCommand(command);
             return await command.ExecuteNonQueryAsync();
         }
@@ -73,7 +73,7 @@ namespace OsuServer.External.Database
         {
             await _database.EnsureConnectionOpen();
 
-            var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+            using var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
             
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -107,7 +107,7 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             List<T> rows = new();
-            var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+            using var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
             
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -160,7 +160,7 @@ namespace OsuServer.External.Database
             );
 
             // Can't figure out how to parameterize this and have user variables at the same time. Not a big issue though
-            var command = new MySqlCommand($"SELECT ordered.position " +
+            using var command = new MySqlCommand($"SELECT ordered.position " +
                 $"FROM (SELECT {identifyingColumnsSelect}, {Name}.{orderByColumn}, (@pos := @pos + 1) AS position " +
                 $"FROM {Name} JOIN (SELECT @pos := 0) AS x " +
                 // TODO: scuffed as hell, but will be fixed if i figure out above
@@ -179,8 +179,12 @@ namespace OsuServer.External.Database
         /// Inserts a row into this table
         /// </summary>
         /// <param name="insertion">The <typeparamref name="T"/> to insert</param>
+        /// <param name="bodgyReconnect">See <see cref="DbInstance.CleanConnection"/>. Set to false to avoid
+        /// disposing the connection before a transaction completes. The bad news is that we can only ever
+        /// insert one row in a single transaction. Hopefully that never becomes an issue or I manage to
+        /// fix this problem.</param>
         /// <returns>Information about the insertion of type <typeparamref name="U"/></returns>
-        public async Task<U> InsertAsync(T insertion)
+        public async Task<U> InsertAsync(T insertion, bool bodgyReconnect = true)
         {
             await _database.EnsureConnectionOpen();
 
@@ -188,7 +192,7 @@ namespace OsuServer.External.Database
             string columnNames = string.Join(", ", insertionArguments.Select(entry => entry.Key));
             string valueNames = string.Join(", ", insertionArguments.Select(entry => $"@{entry.Key}"));
 
-            var command = new MySqlCommand($"INSERT INTO {Name}({columnNames}) VALUES ({valueNames})" +
+            using var command = new MySqlCommand($"INSERT INTO {Name}({columnNames}) VALUES ({valueNames})" +
                 (_insertionReturnColumns.Length > 0 ? $" RETURNING {_insertionReturnColumns}" : ""), _connection);
 
             if (_database.Transaction != null)
@@ -202,18 +206,24 @@ namespace OsuServer.External.Database
             LogSqlCommand(command);
             await command.PrepareAsync();
 
-            await using (MySqlDataReader reader = await command.ExecuteReaderAsync())
-            {
-                U insertionResult = await ReadInsertion(reader);
-                return insertionResult;
-            }
+            MySqlDataReader reader = await command.ExecuteReaderAsync();
+            U insertionResult = await ReadInsertion(reader);
+            await reader.DisposeAsync();
+
+            // *sigh*
+            _database.IsDirty = true;
+            if (bodgyReconnect)
+                await _database.CleanConnection();
+
+            return insertionResult;
+
         }
 
         public async Task<long> GetRowCountAsync(params DbClause[] clauses)
         {
             await _database.EnsureConnectionOpen();
 
-            var command = new MySqlCommand($"SELECT COUNT(*) FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+            using var command = new MySqlCommand($"SELECT COUNT(*) FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
 
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -253,7 +263,7 @@ namespace OsuServer.External.Database
             clausesWithSet[0] = setClause;
             Array.Copy(clauses, 0, clausesWithSet, 1, clauses.Length);
 
-            var command = new MySqlCommand(
+            using var command = new MySqlCommand(
                 $"UPDATE {Name} {string.Join(" ", clausesWithSet.Select(clause => clause.PrepareString()))}",
                 _connection
             );

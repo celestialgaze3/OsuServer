@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Primitives;
-using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Paddings;
@@ -10,11 +9,9 @@ using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
 using OsuServer.External.Database.Tables;
-using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using OsuServer.State;
 using OsuServer.Util;
-using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -376,7 +373,7 @@ namespace OsuServer.API
             }
 
             // Parse the data from the score submission
-            ScoreData scoreData = await ScoreData.GetInstance(Bancho, scoreDataStr);
+            ScoreData scoreData = await ScoreData.GetInstance(database, Bancho, scoreDataStr);
 
             // Beatmap hash (again?)
             string beatmapMD5FromScore = scoreData.BeatmapMD5;
@@ -422,7 +419,7 @@ namespace OsuServer.API
             ProfileStats oldStats = player.Stats.Values;
 
             // Get beatmap information
-            BanchoBeatmap beatmap = await Bancho.GetBeatmap(beatmapMD5);
+            BanchoBeatmap beatmap = await Bancho.GetBeatmap(database, beatmapMD5);
 
             // Get best rank before submission
             int previousRank = await DbScore.GetBestRank(database, beatmap, player);
@@ -614,7 +611,7 @@ namespace OsuServer.API
             string passwordMD5 = request.Query["ha"].ToString();
 
             // Get beatmap information
-            BanchoBeatmap beatmap = await Bancho.GetBeatmap(beatmapMD5);
+            BanchoBeatmap beatmap = await Bancho.GetBeatmap(database, beatmapMD5);
 
             // Get player information
             OnlinePlayer? player = Bancho.GetPlayer(username, passwordMD5);
@@ -682,7 +679,7 @@ namespace OsuServer.API
         
         private async Task<string> GetScoreString(OsuServerDb database, DbScore dbScore, int rank)
         {
-            Score score = await Score.Get(Bancho, dbScore);
+            Score score = await Score.Get(database, Bancho, dbScore);
             return $"{dbScore.Id.Value}|{await score.Player.GetUsername(database)}|{score.TotalScore}|{score.MaxCombo}|" +
                 $"{score.Bads}|{score.Goods}|{score.Perfects}|{score.Misses}|{score.Katus}|{score.Gekis}|" +
                 $"{score.PerfectCombo}|{score.Mods.IntValue}|{score.Player.Id}|{rank}|{score.Timestamp / 1000}|" +

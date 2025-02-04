@@ -1,6 +1,7 @@
 ﻿using OsuServer.API;
 using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
+using OsuServer.External.Database.Rows;
 using OsuServer.External.OsuV2Api.Requests;
 using OsuServer.External.OsuV2Api.Responses;
 
@@ -75,47 +76,53 @@ namespace OsuServer.State
             return player;
         }
 
-        public async Task<BanchoBeatmap> GetBeatmap(string beatmapMD5)
+        public async Task<BanchoBeatmap> GetBeatmap(OsuServerDb database, string? beatmapMD5 = null, int? beatmapId = null)
         {
-            // Retrieve from cache if it already exists
-            if (_beatmapMD5ToBeatmapId.ContainsKey(beatmapMD5))
+            Console.WriteLine($"Retrieving beatmap with search params MD5 {beatmapMD5} and ID {beatmapId}...");
+            if (beatmapMD5 == null && beatmapId == null)
+                throw new InvalidOperationException("A beatmap's hash or ID must be provided.");
+
+            // Retrieve from either cache if it already exists
+            if (beatmapMD5 != null && _beatmapMD5ToBeatmapId.ContainsKey(beatmapMD5))
             {
+                Console.WriteLine("Found beatmap in cache!");
                 return _beatmapIdToBeatmap[_beatmapMD5ToBeatmapId[beatmapMD5]];
+            }
+            if (beatmapId != null && _beatmapIdToBeatmap.ContainsKey((int)beatmapId))
+            {
+                Console.WriteLine("Found beatmap in cache!");
+                return _beatmapIdToBeatmap[(int)beatmapId];
+            }
+
+            // Retrieve from database if we have already looked up this beatmap before
+            Console.WriteLine("Beatmap not found in cache. Searching database...");
+            DbClause searchClause = beatmapId != null ?
+                new DbClause("WHERE", "id = @id", new() { ["id"] = beatmapId }) :
+                new DbClause("WHERE", 
+                    "checksum = @checksum", 
+                    new() { ["checksum"] = beatmapMD5}
+                );
+            DbBeatmap? dbBeatmap = await database.Beatmap.FetchOneAsync(searchClause);
+
+            if (dbBeatmap != null)
+            {
+                Console.WriteLine("Found beatmap in database!");
+                return new BanchoBeatmap(this, dbBeatmap.BeatmapExtended);
             }
 
             // Query osu! API for beatmap information
-            BeatmapLookupResponse response = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5, null, null));
+            BeatmapLookupResponse response = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5, null, beatmapId.ToString()));
             int id = response.BeatmapExtended.Id;
 
             BanchoBeatmap beatmap = new BanchoBeatmap(this, response.BeatmapExtended);
 
-            _beatmapMD5ToBeatmapId.Add(beatmapMD5, id);
+            // Save to caches
+            if (beatmapMD5 != null) 
+                _beatmapMD5ToBeatmapId.Add(beatmapMD5, id);
             _beatmapIdToBeatmap.Add(id, beatmap);
 
-            // TODO: Save to database to avoid osu! API spam on server restarts
-
-            return beatmap;
-        }
-
-        public async Task<BanchoBeatmap> GetBeatmap(int beatmapId)
-        {
-            // Retrieve from cache if it already exists
-            if (_beatmapIdToBeatmap.ContainsKey(beatmapId))
-            {
-                return _beatmapIdToBeatmap[beatmapId];
-            }
-
-            // Query osu! API for beatmap information
-            BeatmapLookupResponse response = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(null, null, beatmapId.ToString()));
-            string? beatmapMD5 = response.BeatmapExtended.Checksum;
-
-            BanchoBeatmap beatmap = new BanchoBeatmap(this, response.BeatmapExtended);
-
-            if (beatmapMD5 != null)
-            {
-                _beatmapMD5ToBeatmapId.Add(beatmapMD5, beatmapId);
-            }
-            _beatmapIdToBeatmap.Add(beatmapId, beatmap);
+            // Save to database to avoid osu! API spam on server restarts
+            await database.Beatmap.InsertAsync(new DbBeatmap(response.BeatmapExtended));
 
             return beatmap;
         }
