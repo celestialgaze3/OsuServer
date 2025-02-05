@@ -40,9 +40,12 @@ namespace OsuServer.External.Database
         {
             if (MySqlConnection.State == System.Data.ConnectionState.Open)
             {
+                string connectionString = MySqlConnection.ConnectionString;
                 await MySqlConnection.CloseAsync();
+                await MySqlConnection.DisposeAsync();
+               
+                MySqlConnection = new MySqlConnection(connectionString);
                 await MySqlConnection.OpenAsync();
-
                 IsDirty = false;
             }
         }

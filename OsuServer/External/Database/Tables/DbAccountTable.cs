@@ -24,7 +24,7 @@ namespace OsuServer.External.Database.Tables
             // Start auto-incrementing account IDs from 3, to avoid "Do you really want to ask peppy?" when attempting to message ID 2
             if (!existed)
             {
-                using var command = new MySqlCommand($"ALTER TABLE {Name} AUTO_INCREMENT=3;", _connection);
+                using var command = new MySqlCommand($"ALTER TABLE {Name} AUTO_INCREMENT=3;", _database.MySqlConnection);
                 return await command.ExecuteNonQueryAsync();
             }
             return 0;

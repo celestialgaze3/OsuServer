@@ -6,7 +6,6 @@ namespace OsuServer.External.Database
     {
         protected string _schema;
         protected DbInstance _database;
-        protected MySqlConnection _connection;
         protected string _insertionReturnColumns;
         public string Name { get; private set; }
 
@@ -14,7 +13,6 @@ namespace OsuServer.External.Database
         {
             _schema = schema;
             _database = database;
-            _connection = database.MySqlConnection;
             _insertionReturnColumns = insertionReturnColumns;
             Name = name;
         }
@@ -30,7 +28,7 @@ namespace OsuServer.External.Database
             using var command = new MySqlCommand("SELECT count(*) " +
                 "FROM information_schema.tables " +
                 $"WHERE table_schema = '{ServerConfiguration.DatabaseName}' " +
-                $"AND table_name = '{Name}'", _connection);
+                $"AND table_name = '{Name}'", _database.MySqlConnection);
 
             LogSqlCommand(command);
             long? count = (long?)await command.ExecuteScalarAsync();
@@ -47,7 +45,7 @@ namespace OsuServer.External.Database
         {
             await _database.EnsureConnectionOpen();
 
-            using var command = new MySqlCommand($"CREATE TABLE IF NOT EXISTS {Name} ({_schema});", _connection);
+            using var command = new MySqlCommand($"CREATE TABLE IF NOT EXISTS {Name} ({_schema});", _database.MySqlConnection);
             LogSqlCommand(command);
             return await command.ExecuteNonQueryAsync();
         }
@@ -74,7 +72,7 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             using var command = new MySqlCommand($"SELECT * FROM {Name} " +
-                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _database.MySqlConnection);
             
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -109,7 +107,7 @@ namespace OsuServer.External.Database
 
             List<T> rows = new();
             using var command = new MySqlCommand($"SELECT * FROM {Name} " +
-                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _database.MySqlConnection);
             
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -143,7 +141,7 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             using var command = new MySqlCommand($"SELECT SUM({columnName}) FROM {Name} " +
-                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _database.MySqlConnection);
 
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -172,7 +170,7 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             using var command = new MySqlCommand($"SELECT MAX({columnName}) FROM {Name} " +
-                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _database.MySqlConnection);
 
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -227,7 +225,7 @@ namespace OsuServer.External.Database
                 // TODO: scuffed as hell, but will be fixed if i figure out above
                 (innerWhereClause != string.Empty ? $"WHERE {innerWhereClause} " : "") +
                 $"ORDER BY {Name}.{orderByColumn} DESC) AS ordered " +
-                $"{whereClause.PrepareString()}", _connection);
+                $"{whereClause.PrepareString()}", _database.MySqlConnection);
 
             LogSqlCommand(command);
 
@@ -253,7 +251,7 @@ namespace OsuServer.External.Database
             string valueNames = string.Join(", ", insertionArguments.Select(entry => $"@{entry.Key}"));
 
             using var command = new MySqlCommand($"INSERT INTO {Name}({columnNames}) VALUES ({valueNames})" +
-                (_insertionReturnColumns.Length > 0 ? $" RETURNING {_insertionReturnColumns}" : ""), _connection);
+                (_insertionReturnColumns.Length > 0 ? $" RETURNING {_insertionReturnColumns}" : ""), _database.MySqlConnection);
 
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -284,7 +282,7 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             using var command = new MySqlCommand($"SELECT COUNT(*) FROM {Name} " +
-                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _database.MySqlConnection);
 
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -326,7 +324,7 @@ namespace OsuServer.External.Database
 
             using var command = new MySqlCommand(
                 $"UPDATE {Name} {string.Join(" ", clausesWithSet.Select(clause => clause.PrepareString()))}",
-                _connection
+                _database.MySqlConnection
             );
 
             if (_database.Transaction != null)
