@@ -100,14 +100,14 @@ namespace OsuServer.State
                 totalPP += scorePP * Math.Pow(0.95f, totalPasses);
                 totalPasses++;
             }
-
+            
             return totalPP;
         }
 
         public double CalculateAccuracy()
         {
             int totalPasses = 0;
-            double totalAccuracyWeighted = 0.0f;
+            double totalAccuracyWeighted = 0.0d;
             if (_sortedTopPlays == null)
                 return 0;
 
@@ -127,6 +127,9 @@ namespace OsuServer.State
                 totalAccuracyWeighted += scoreAccuracy * Math.Pow(0.95d, totalPasses);
                 totalPasses++;
             }
+
+            if (totalPasses == 0)
+                return 0;
 
             return (double)(totalAccuracyWeighted * (1.0d / (20d * (1d - Math.Pow(0.95d, totalPasses)))));
         }
