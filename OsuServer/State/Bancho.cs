@@ -103,7 +103,6 @@ namespace OsuServer.State
                     new() { ["checksum"] = beatmapMD5}
                 );
             DbBeatmap? dbBeatmap = await database.Beatmap.FetchOneAsync(searchClause);
-
             if (dbBeatmap != null)
             {
                 Console.WriteLine("Found beatmap in database!");

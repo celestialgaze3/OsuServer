@@ -393,8 +393,6 @@ namespace OsuServer.API
                 // Client got signed out likely due to a server restart. Respond with an empty message to keep it retrying.
                 return Results.Ok();
             }
-
-            // TODO validate all checksums
             
             // Compare score checksums
             string expectedChecksum = scoreData.Score.CalculateChecksum(beatmapMD5, player.Username, osuVersion, scoreData.ClientTime,

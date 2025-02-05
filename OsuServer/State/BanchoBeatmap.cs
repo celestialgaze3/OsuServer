@@ -32,24 +32,27 @@ namespace OsuServer.State
         /// <returns>This beatmap's adjusted ranked status</returns>
         public RankStatus GetRankStatus()
         {
-            // hehe TODO: custom ranking
-            if (Info.UserId == 10321695)
-                Info.Ranked = RankStatus.Ranked;
+            /* TODO: if i'm interested enough, maybe a custom ranking system one day.
+             * but for now, one thing i've always kindof wished for... every map should
+             * be ranked (or at least, have a leaderboard). */
+            if (!Info.Ranked.ClientSubmitsScores)
+                Info.Ranked = RankStatus.Approved;
 
             return Info.Ranked;
         }
 
         public bool ShouldAwardStatIncrease()
         {
-            RankStatus status = GetRankStatus();
+            return true;
+            /*RankStatus status = GetRankStatus();
             if (status == RankStatus.Ranked || status == RankStatus.Approved ||
                 status == RankStatus.Loved)
             {
                 return true;
-            }
+            }*/
 
             // Graveyard, pending, qualified
-            return false;
+            //return false;
         }
     }
 

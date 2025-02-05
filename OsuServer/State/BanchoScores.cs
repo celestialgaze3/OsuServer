@@ -36,12 +36,14 @@ namespace OsuServer.State
             }
 
             await database.StartTransaction();
-            (DbScore, DbScore?[]) dbScore = await DbScore.PrepareInsertion(database, score);
+            (DbScore, DbScore?[]) ScoreInfo = await DbScore.PrepareInsertion(database, score);
+            DbScore dbScore = ScoreInfo.Item1;
+            DbScore?[] previousBests = ScoreInfo.Item2;
 
-            int assignedScoreId = await database.Score.InsertAsync(dbScore.Item1, false);
+            int assignedScoreId = await database.Score.InsertAsync(dbScore, false);
             await database.CommitTransaction();
 
-            dbScore.Item1.Id.Value = (uint) assignedScoreId;
+            dbScore.Id.Value = (uint) assignedScoreId;
 
             SubmittedScore submittedScore = new(score, assignedScoreId);
             _idToScore.Add(assignedScoreId, submittedScore);
@@ -51,7 +53,7 @@ namespace OsuServer.State
             // Update the player's state based on this score
             await player.UpdateWithScore(database, submittedScore);
 
-            return (submittedScore, dbScore.Item1, dbScore.Item2);
+            return (submittedScore, dbScore, previousBests);
         }
 
         /// <summary>
@@ -67,7 +69,7 @@ namespace OsuServer.State
                     "account_id = @account_id AND is_best_pp = 1 AND gamemode = @gamemode", 
                     new() { ["account_id"] = player.Id, ["gamemode"] = (int)gameMode }
                 ),
-                new DbClause("ORDER BY", "pp"),
+                new DbClause("ORDER BY", "pp DESC"),
                 new DbClause("LIMIT", "500")
             );
 

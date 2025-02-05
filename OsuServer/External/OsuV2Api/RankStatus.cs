@@ -13,7 +13,14 @@
         public static RankStatus[] Values = { Graveyard, Wip, Pending, Ranked, Approved, Qualified, Loved };
 
         public int ValueInt { get; private set; }
-        public int ValueGetScores {
+        public string ValueString { get; private set; }
+
+        /// <summary>
+        /// Adjusts the integer value of this status to align with what the osu! client
+        /// expects to see in a score get-scores response.
+        /// </summary>
+        public int ValueGetScores
+        {
             get
             {
                 if (ValueInt <= 0)
@@ -23,7 +30,17 @@
                 return ValueInt + 1; // offset by "UpdateAvailable"
             }
         }
-        public string ValueString { get; private set; }
+
+        /// <summary>
+        /// Whether or not the client will submit a score for a beatmap with this ranked status.
+        /// </summary>
+        public bool ClientSubmitsScores
+        {
+            get {
+                return ValueInt > 0;
+            }
+        }
+
         private RankStatus(int valueInt, string valueString)
         {
             ValueInt = valueInt;
