@@ -230,7 +230,7 @@ namespace OsuServer.External.Database.Rows
             );
         }
 
-        public static async Task<int> GetRank(OsuServerDb database, DbScore? score, BanchoBeatmap beatmap, 
+        public static async Task<int> GetLeaderboardRank(OsuServerDb database, DbScore? score, BanchoBeatmap beatmap, 
             GameMode gameMode)
         {
             int rank = 0;
@@ -239,7 +239,8 @@ namespace OsuServer.External.Database.Rows
                 rank = await database.Score.GetRankAsync(
                 score,
                 "total_score",
-                    $"beatmap_id = {beatmap.Info.Id} AND is_pass = 1 AND gamemode = {(int)gameMode}"
+                    $"beatmap_id = {beatmap.Info.Id} AND (is_best_score = 1 OR id={score.Id.Value}) " +
+                    $"AND gamemode = {(int)gameMode}"
                 );
             }
 
@@ -250,7 +251,7 @@ namespace OsuServer.External.Database.Rows
             GameMode gameMode)
         {
             DbScore? playerTopScore = await GetTopScoreAsync(database, beatmap, player, gameMode);
-            return await GetRank(database, playerTopScore, beatmap, gameMode);
+            return await GetLeaderboardRank(database, playerTopScore, beatmap, gameMode);
         }
 
         public override DbColumn[] GetColumns()

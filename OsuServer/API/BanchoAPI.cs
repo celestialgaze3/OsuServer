@@ -433,7 +433,7 @@ namespace OsuServer.API
             ScoreStats oldBestStats = await ScoreStats.FromDbScores(database, Bancho, submittedScore.Item3);
 
             // Get rank of submitted score
-            int newRank = await DbScore.GetRank(database, submittedScore.Item2, beatmap, scoreData.Score.GameMode);
+            int newRank = await DbScore.GetLeaderboardRank(database, submittedScore.Item2, beatmap, scoreData.Score.GameMode);
 
             // Send data back to client
             ScoreReport report = new(Bancho, beatmap.Info, player, oldStats, player.Stats[scoreData.Score.GameMode].Values,
@@ -646,7 +646,7 @@ namespace OsuServer.API
                     }
                 )
             );
-            int playerRank = await DbScore.GetRank(database, playerTopScore, beatmap, player.Status.GameMode);
+            int scoreRank = await DbScore.GetLeaderboardRank(database, playerTopScore, beatmap, player.Status.GameMode);
 
             List<string> responseBody = new()
             {
@@ -670,7 +670,7 @@ namespace OsuServer.API
             // Add personal best score first
             if (playerTopScore != null)
             {
-                responseBody.Add(await GetScoreString(database, playerTopScore, playerRank));
+                responseBody.Add(await GetScoreString(database, playerTopScore, scoreRank));
             } else
             {
                 responseBody.Add("");
