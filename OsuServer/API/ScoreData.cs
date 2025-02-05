@@ -31,7 +31,6 @@ namespace OsuServer.API
                     totalScore: Int32.Parse(submissionArgs[9]),
                     maxCombo: Int32.Parse(submissionArgs[10]),
                     perfectCombo: submissionArgs[11] == "True",
-                    grade: Enum.Parse<Grade>(submissionArgs[12]),
                     mods: new Mods(Int32.Parse(submissionArgs[13])),
                     passed: submissionArgs[14] == "True",
                     gameMode: (GameMode)Int32.Parse(submissionArgs[15]),

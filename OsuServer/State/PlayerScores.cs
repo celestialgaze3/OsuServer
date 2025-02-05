@@ -14,11 +14,12 @@ namespace OsuServer.State
         private Bancho _bancho;
         private Dictionary<int, int> _scoreIds;
         private List<KeyValuePair<int, int>>? _sortedTopPlays;
-        public PlayerScores(Player player, Bancho bancho)
+        public GameMode GameMode { get; set; }
+        public PlayerScores(Player player, Bancho bancho, GameMode gameMode)
         {
             _player = player;
             _bancho = bancho;
-
+            GameMode = gameMode;
             _scoreIds = [];
         }
 
@@ -85,6 +86,10 @@ namespace OsuServer.State
         {
             int bestScoreId;
             SubmittedScore currentBestPP;
+
+            // If the play is a fail, it's not relevant to any stat calculations and can be discarded.
+            if (!score.Passed)
+                return;
 
             // We only want one best pp score per beatmap
             // If no current best pp score exists, add the new score

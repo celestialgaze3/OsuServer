@@ -416,24 +416,24 @@ namespace OsuServer.API
              * uniquely identify a score. In this way, we can prevent duplicate submissions. */
 
             // Save old player stats
-            ProfileStats oldStats = player.Stats.Values;
+            ProfileStats oldStats = player.Stats[scoreData.Score.GameMode].Values;
 
             // Get beatmap information
             BanchoBeatmap beatmap = await Bancho.GetBeatmap(database, beatmapMD5);
 
             // Get best rank before submission
-            int previousRank = await DbScore.GetBestRank(database, beatmap, player);
+            int previousRank = await DbScore.GetBestRank(database, beatmap, player, scoreData.Score.GameMode);
 
             // Update server state with this score
-            (SubmittedScore, DbScore?) submittedScore = await Bancho.Scores.Submit(
+            (SubmittedScore, DbScore?, DbScore?[]) submittedScore = await Bancho.Scores.Submit(
                 database, player, scoreData.Score, scoreData.Checksum);
-            ScoreStats oldBestStats = beatmap.UpdateWithScore(player, submittedScore.Item1);
+            ScoreStats oldBestStats = await ScoreStats.FromDbScores(database, Bancho, submittedScore.Item3);
 
             // Get rank of submitted score
-            int newRank = await DbScore.GetRank(database, submittedScore.Item2, beatmap);
+            int newRank = await DbScore.GetRank(database, submittedScore.Item2, beatmap, scoreData.Score.GameMode);
 
             // Send data back to client
-            ScoreReport report = new(Bancho, beatmap.Info, player, oldStats, player.Stats.Values,
+            ScoreReport report = new(Bancho, beatmap.Info, player, oldStats, player.Stats[scoreData.Score.GameMode].Values,
                 oldBestStats, new ScoreStats(submittedScore.Item1));
             string clientResponse = report.GenerateString(previousRank, newRank, scoreData.Checksum);
 
@@ -624,18 +624,19 @@ namespace OsuServer.API
             }
 
             // Get top 50 scores and player's personal best on the beatmap
-            List<DbScore> topScores = await DbScore.GetTopScoresAsync(database, beatmap);
-            DbScore? playerTopScore = await DbScore.GetTopScoreAsync(database, beatmap, player);
+            List<DbScore> topScores = await DbScore.GetTopScoresAsync(database, beatmap, player.Status.GameMode);
+            DbScore? playerTopScore = await DbScore.GetTopScoreAsync(database, beatmap, player, player.Status.GameMode);
             long totalScoreCount = await database.Score.GetRowCountAsync(
                 new DbClause(
                     "WHERE",
-                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND is_pass = 1", 
+                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND is_pass = 1 AND gamemode = @gamemode", 
                     new() { 
-                        ["beatmap_id"] = beatmap.Info.Id 
+                        ["beatmap_id"] = beatmap.Info.Id,
+                        ["gamemode"] = (int)player.Status.GameMode
                     }
                 )
             );
-            int playerRank = await DbScore.GetRank(database, playerTopScore, beatmap);
+            int playerRank = await DbScore.GetRank(database, playerTopScore, beatmap, player.Status.GameMode);
 
             List<string> responseBody = new()
             {

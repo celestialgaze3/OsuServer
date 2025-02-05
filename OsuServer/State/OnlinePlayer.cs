@@ -18,11 +18,12 @@ namespace OsuServer.State
         // "Block private messages from non-friends" option
         public bool BlockingStrangerMessages { get; set; }
 
-        public PlayerStats Stats { get; private set; }
+        public Dictionary<GameMode, PlayerStats> Stats { get; private set; } 
+            
         public LoginData LoginData { get; private set; }
         public List<Channel> Channels { get; private set; }
         public DateTime LoginTime { get; private set; }
-        public PlayerScores Scores { get; private set; }
+        public Dictionary<GameMode, PlayerScores> Scores { get; private set; }
 
         public OnlinePlayer(int id, Bancho bancho, Connection connection, LoginData loginData)
             : base(id)
@@ -31,7 +32,7 @@ namespace OsuServer.State
             Username = loginData.Username;
             Connection = connection;
             Privileges = new Privileges();
-            Stats = new PlayerStats(this);
+            Stats = new Dictionary<GameMode, PlayerStats>();
             Presence = new Presence();
             Status = new Status();
             Channels = [];
@@ -39,7 +40,13 @@ namespace OsuServer.State
             Presence.UtcOffset = loginData.UtcOffset;
             BlockingStrangerMessages = loginData.DisallowPrivateMessages;
             LoginTime = DateTime.Now;
-            Scores = new PlayerScores(this, Bancho);
+            Scores = new Dictionary<GameMode, PlayerScores>();
+
+            foreach (GameMode gameMode in Enum.GetValues(typeof(GameMode)))
+            {
+                Stats[gameMode] = new PlayerStats(this, gameMode);
+                Scores[gameMode] = new PlayerScores(this, bancho, gameMode);
+            }
         }
 
         public void SendMessage(OsuMessage message)
@@ -74,14 +81,17 @@ namespace OsuServer.State
 
         public async Task UpdateWithScore(OsuServerDb database, SubmittedScore score)
         {
-            Scores.Add(score, true);
-            await Stats.UpdateWith(database, score);
+            Scores[score.GameMode].Add(score, true);
+            await Stats[score.GameMode].UpdateWith(database, score);
         }
 
         public async Task UpdateFromDb(OsuServerDb database)
         {
-            await Stats.UpdateFromDb(database);
-            await Bancho.Scores.UpdateFromDb(database, this);
+            foreach (GameMode gameMode in Enum.GetValues(typeof(GameMode)))
+            {
+                await Stats[gameMode].UpdateFromDb(database);
+                await Bancho.Scores.UpdateFromDb(database, this, gameMode);
+            }
         }
 
         public override Task<string> GetUsername(OsuServerDb database)

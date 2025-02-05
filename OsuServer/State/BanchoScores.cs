@@ -17,18 +17,31 @@ namespace OsuServer.State
         {
             _bancho = bancho;
         }
-        public async Task<(SubmittedScore, DbScore?)> Submit(OsuServerDb database, OnlinePlayer player, Score score, string scoreChecksum)
+
+        /// <summary>
+        /// Submits a score to this Bancho instance
+        /// </summary>
+        /// <param name="database">The database instance</param>
+        /// <param name="player">The player who set the score</param>
+        /// <param name="score">The score itself</param>
+        /// <param name="scoreChecksum">The checksum submitted by the client</param>
+        /// <returns>A tuple with three items: the first one is the SubmittedScore, the second is the DbScore,
+        /// and the third is an array of the old best scores</returns>
+        public async Task<(SubmittedScore, DbScore?, DbScore?[])> Submit(OsuServerDb database, OnlinePlayer player, Score score, string scoreChecksum)
         {
-            if (IsSubmitted(scoreChecksum)) 
-                return (_idToScore[_checksumToId[scoreChecksum]], null);
+            if (IsSubmitted(scoreChecksum))
+            {
+                SubmittedScore foundScore = _idToScore[_checksumToId[scoreChecksum]];
+                return (foundScore, null, []);
+            }
 
             await database.StartTransaction();
-            DbScore dbScore = await DbScore.PrepareInsertion(database, score);
+            (DbScore, DbScore?[]) dbScore = await DbScore.PrepareInsertion(database, score);
 
-            int assignedScoreId = await database.Score.InsertAsync(dbScore, false);
+            int assignedScoreId = await database.Score.InsertAsync(dbScore.Item1, false);
             await database.CommitTransaction();
 
-            dbScore.Id.Value = (uint) assignedScoreId;
+            dbScore.Item1.Id.Value = (uint) assignedScoreId;
 
             SubmittedScore submittedScore = new(score, assignedScoreId);
             _idToScore.Add(assignedScoreId, submittedScore);
@@ -38,7 +51,7 @@ namespace OsuServer.State
             // Update the player's state based on this score
             await player.UpdateWithScore(database, submittedScore);
 
-            return (submittedScore, dbScore);
+            return (submittedScore, dbScore.Item1, dbScore.Item2);
         }
 
         /// <summary>
@@ -46,13 +59,13 @@ namespace OsuServer.State
         /// </summary>
         /// <param name="player">The player to get the scores from</param>
         /// <returns></returns>
-        public async Task UpdateFromDb(OsuServerDb database, OnlinePlayer player)
+        public async Task UpdateFromDb(OsuServerDb database, OnlinePlayer player, GameMode gameMode)
         {
             List<DbScore> scores = await database.Score.FetchManyAsync(
                 new DbClause(
                     "WHERE", 
-                    "account_id = @account_id AND is_best_pp = 1", 
-                    new() { ["account_id"] = player.Id }
+                    "account_id = @account_id AND is_best_pp = 1 AND gamemode = @gamemode", 
+                    new() { ["account_id"] = player.Id, ["gamemode"] = (int)gameMode }
                 ),
                 new DbClause("ORDER BY", "pp"),
                 new DbClause("LIMIT", "500")
@@ -65,11 +78,10 @@ namespace OsuServer.State
                 SubmittedScore submittedScore = new(score, id);
 
                 _idToScore[id] = submittedScore;
-                score.Beatmap.AddScore(player, submittedScore);
-                player.Scores.Add(submittedScore);
+                player.Scores[score.GameMode].Add(submittedScore);
             }
 
-            player.Scores.SortTopPlays();
+            player.Scores[gameMode].SortTopPlays();
             Console.WriteLine($"Loaded {scores.Count} top plays");
         }
 

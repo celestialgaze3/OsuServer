@@ -19,12 +19,12 @@ namespace OsuServer.API.Packets.Server
             binaryWriter.Write(Player.Status.Mods.IntValue); // mods
             binaryWriter.Write((byte) Player.Status.GameMode); // mode id
             binaryWriter.Write(Player.Status.MapID); // mnap id
-            binaryWriter.Write(Player.Stats.Values.RankedScore); // ranked score
-            binaryWriter.Write((float) Player.Stats.Values.Accuracy); // acc
-            binaryWriter.Write(Player.Stats.Values.Playcount); // playcount
-            binaryWriter.Write(Player.Stats.Values.TotalScore); // total scotre
-            binaryWriter.Write(Player.Stats.Values.Rank); // rank
-            binaryWriter.Write((short) Math.Round(Player.Stats.Values.PP)); //pp
+            binaryWriter.Write(Player.Stats[Player.Status.GameMode].Values.RankedScore); // ranked score
+            binaryWriter.Write((float) Player.Stats[Player.Status.GameMode].Values.Accuracy); // acc
+            binaryWriter.Write(Player.Stats[Player.Status.GameMode].Values.Playcount); // playcount
+            binaryWriter.Write(Player.Stats[Player.Status.GameMode].Values.TotalScore); // total scotre
+            binaryWriter.Write(Player.Stats[Player.Status.GameMode].Values.Rank); // rank
+            binaryWriter.Write((short)Math.Round(Player.Stats[Player.Status.GameMode].Values.PP)); //pp
         }
     }
 }

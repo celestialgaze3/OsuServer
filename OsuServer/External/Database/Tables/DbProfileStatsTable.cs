@@ -1,5 +1,6 @@
 ﻿using MySqlConnector;
 using OsuServer.External.Database.Rows;
+using OsuServer.Objects;
 
 namespace OsuServer.External.Database.Tables
 {
@@ -7,6 +8,7 @@ namespace OsuServer.External.Database.Tables
         database,
         "ProfileStats",
         @"account_id INT UNSIGNED NOT NULL,
+        gamemode TINYINT UNSIGNED NOT NULL DEFAULT 0,
         total_score BIGINT NOT NULL DEFAULT 0,
         ranked_score BIGINT NOT NULL DEFAULT 0,
         accuracy DOUBLE NOT NULL DEFAULT 0,
@@ -15,7 +17,7 @@ namespace OsuServer.External.Database.Tables
         pp DOUBLE NOT NULL DEFAULT 0,
         max_combo INT NOT NULL DEFAULT 0,
 
-        PRIMARY KEY(account_id),
+        PRIMARY KEY(account_id, gamemode),
         CONSTRAINT FK_profile_stats_account FOREIGN KEY (account_id) REFERENCES Account(id)",
         "account_id")
     {
@@ -24,13 +26,14 @@ namespace OsuServer.External.Database.Tables
         {
             return new DbProfileStats(
                 (int)reader.GetUInt32(0),
-                reader.GetInt64(1), 
-                reader.GetInt64(2),
-                reader.GetDouble(3),
-                reader.GetInt32(4),
+                (GameMode)reader.GetInt32(1),
+                reader.GetInt64(2), 
+                reader.GetInt64(3),
+                reader.GetDouble(4),
                 reader.GetInt32(5),
-                reader.GetDouble(6),
-                reader.GetInt32(7)
+                reader.GetInt32(6),
+                reader.GetDouble(7),
+                reader.GetInt32(8)
             );
         }
 

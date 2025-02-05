@@ -11,6 +11,8 @@ namespace OsuServer.State
         private OnlinePlayer _player;
         private ProfileStats _profileStats;
 
+        public GameMode GameMode { get; set; }
+
         public ProfileStats Values
         {
             get
@@ -19,8 +21,9 @@ namespace OsuServer.State
             }
         }
 
-        public PlayerStats(OnlinePlayer player) {
+        public PlayerStats(OnlinePlayer player, GameMode mode) {
             _player = player;
+            GameMode = mode;
             _profileStats = new ProfileStats();
         }
 
@@ -53,9 +56,9 @@ namespace OsuServer.State
         /// </summary>
         public void RecalculateStats()
         {
-            _profileStats.PP = _player.Scores.CalculatePerformancePoints();
-            _profileStats.Accuracy = _player.Scores.CalculateAccuracy();
-            // TODO: ranked and maybe total score if we decide to store fails
+            _profileStats.PP = _player.Scores[GameMode].CalculatePerformancePoints();
+            _profileStats.Accuracy = _player.Scores[GameMode].CalculateAccuracy();
+            // TODO: ranked and maybe total score if we decide to store fails permanently
         }
 
         public async Task<DbProfileStats?> GetDbRow(OsuServerDb database)
@@ -64,8 +67,8 @@ namespace OsuServer.State
             return await profileStats.FetchOneAsync(
                 new DbClause(
                     "WHERE", 
-                    "account_id = @account_id", 
-                    new() { ["account_id"] = _player.Id }
+                    "account_id = @account_id AND gamemode = @gamemode", 
+                    new() { ["account_id"] = _player.Id, ["gamemode"] = (int)GameMode }
                 )
             );
         }
@@ -90,7 +93,7 @@ namespace OsuServer.State
 
         public async Task UpdateRank(OsuServerDb database, DbProfileStats row)
         {
-            int rank = await database.ProfileStats.GetRankAsync(row, "pp");
+            int rank = await database.ProfileStats.GetRankAsync(row, "pp", $"gamemode = {(int)GameMode}");
             _profileStats.Rank = rank;
         }
 
@@ -103,6 +106,7 @@ namespace OsuServer.State
             {
                 row = new(
                     _player.Id,
+                    GameMode,
                     _profileStats.TotalScore,
                     _profileStats.RankedScore,
                     _profileStats.Accuracy,

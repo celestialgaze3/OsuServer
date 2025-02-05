@@ -187,7 +187,7 @@ namespace OsuServer.State
             await player.UpdateFromDb(database);
 
             // Recalculate stats
-            player.Stats.RecalculateStats();
+            player.Stats[player.Status.GameMode].RecalculateStats();
 
             foreach (OnlinePlayer onlinePlayer in GetPlayers())
             {

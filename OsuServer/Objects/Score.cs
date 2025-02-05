@@ -26,8 +26,9 @@ namespace OsuServer.Objects
         public BanchoBeatmap Beatmap { get; private set; }
         public long Timestamp { get; internal set; }
 
-        public Score(int perfects, int goods, int bads, int gekis, int katus, int misses, int totalScore, int maxCombo, bool perfectCombo,
-            Grade grade, Mods mods, bool passed, GameMode gameMode, Player player, BanchoBeatmap beatmap, long timestamp)
+        public Score(int perfects, int goods, int bads, int gekis, int katus, int misses, int totalScore, int maxCombo, 
+            bool perfectCombo, Mods mods, bool passed, GameMode gameMode, Player player, BanchoBeatmap beatmap, 
+            long timestamp)
         {
             Perfects = perfects;
             Goods = goods;
@@ -38,7 +39,7 @@ namespace OsuServer.Objects
             TotalScore = totalScore;
             MaxCombo = maxCombo;
             PerfectCombo = perfectCombo;
-            Grade = grade;
+            Grade = CalculateGrade(gameMode, mods, perfects, goods, bads, misses, passed);
             Mods = mods;
             Passed = passed;
             GameMode = gameMode;
@@ -50,7 +51,7 @@ namespace OsuServer.Objects
         public static async Task<Score> Get(OsuServerDb database, Bancho bancho, DbScore dbScore)
         {
             GameMode gameMode = (GameMode)dbScore.GameMode.Value;
-            Mods mods = new Mods(dbScore.Mods.Value);
+            Mods mods = new(dbScore.Mods.Value);
             int perfects = dbScore.Perfects.Value;
             int goods = dbScore.Goods.Value;
             int bads = dbScore.Bads.Value;
@@ -67,7 +68,6 @@ namespace OsuServer.Objects
                 dbScore.TotalScore.Value,
                 dbScore.MaxCombo.Value,
                 dbScore.IsPerfectCombo.Value,
-                CalculateGrade(gameMode, mods, perfects, goods, bads, misses, isPass),
                 mods,
                 isPass,
                 gameMode,
@@ -89,7 +89,6 @@ namespace OsuServer.Objects
 
         public string CalculateChecksum(string beatmapMD5, string playerName, string osuVersion, string clientTime, string clientHash, string storyboardChecksum)
         {
-
             // Not sure why C# decides to put a billion null bytes at the end of strings. Thanks for the debugging nightmare
             /*string prehash = $"chickenmcnuggets{Perfects + Goods}o15{Bads}{Gekis}smustard{Katus}{Misses}uu{beatmapMD5}" +
                 $"{MaxCombo}{PerfectCombo}{playerName}{TotalScore}{Enum.GetName<Grade>(Grade)}{Mods.IntValue}Q{Passed}" +

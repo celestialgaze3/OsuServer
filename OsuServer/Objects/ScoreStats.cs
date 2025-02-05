@@ -1,4 +1,6 @@
-﻿using OsuServer.State;
+﻿using OsuServer.External.Database;
+using OsuServer.External.Database.Rows;
+using OsuServer.State;
 
 namespace OsuServer.Objects
 {
@@ -41,6 +43,23 @@ namespace OsuServer.Objects
             }
         }
 
+        public static async Task<ScoreStats> FromDbScores(OsuServerDb database, Bancho bancho, params DbScore?[] scores)
+        {
+            SubmittedScore?[] submittedScores = new SubmittedScore[scores.Length];
+            for (int i = 0; i < scores.Length; i++) { 
+                var dbScore = scores[i];
+                if (dbScore == null)
+                {
+                    submittedScores[i] = null;
+                    continue;
+                }
+
+                submittedScores[i] = new SubmittedScore(await dbScore.GetScore(database, bancho), (int)dbScore.Id.Value);
+            }
+
+            return new ScoreStats(submittedScores);
+        }
+
         /// <summary>
         /// Fills this ScoreStats instance with the highest stats from the given scores
         /// </summary>
@@ -55,7 +74,7 @@ namespace OsuServer.Objects
             }
         }
 
-        private void SetBestValues(SubmittedScore? score)
+        private void SetBestValues(Score? score)
         {
             if (score == null) return;
 

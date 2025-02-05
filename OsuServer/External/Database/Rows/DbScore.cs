@@ -78,8 +78,22 @@ namespace OsuServer.External.Database.Rows
             IsBestScore = new("is_best_score", isBestScore);
             SubmittedTime = new("submitted_time", score.Timestamp);
         }
+
+        public async Task<Score> GetScore(OsuServerDb database, Bancho bancho)
+        {
+            return new Score(Perfects.Value, Goods.Value, Bads.Value, Gekis.Value, Katus.Value,
+            Misses.Value, TotalScore.Value, MaxCombo.Value, IsPerfectCombo.Value, new Mods(Mods.Value), IsPass.Value,
+            (GameMode) GameMode.Value, new Player((int)AccountId.Value), 
+            await bancho.GetBeatmap(database, null, (int)BeatmapId.Value), SubmittedTime.Value);
+        }
         
-        public static async Task<DbScore> PrepareInsertion(OsuServerDb database, Score score)
+        /// <summary>
+        /// Prepares a score for insertion into the database
+        /// </summary>
+        /// <param name="database">The database instance</param>
+        /// <param name="score">The Score to insert</param>
+        /// <returns>A tuple of the DbScore to insert, with an array of all previous best scores</returns>
+        public static async Task<(DbScore, DbScore?[])> PrepareInsertion(OsuServerDb database, Score score)
         {
             /* We want to find out if this play has bested previous plays in various stats. 
              * Let's make some queries to find out. */
@@ -91,10 +105,25 @@ namespace OsuServer.External.Database.Rows
             bool isBestScore = false;
 
             // Find the best scores in each category
-            DbScore? bestPP = await GetTopScoreAsync(database, score.Beatmap, score.Player, "is_best_pp");
-            DbScore? bestAccuracy = await GetTopScoreAsync(database, score.Beatmap, score.Player, "is_best_accuracy");
-            DbScore? bestCombo = await GetTopScoreAsync(database, score.Beatmap, score.Player, "is_best_combo");
-            DbScore? bestScore = await GetTopScoreAsync(database, score.Beatmap, score.Player, "is_best_score");
+            DbScore? bestPP = 
+                await GetTopScoreAsync(database, score.Beatmap, score.Player, score.GameMode, "is_best_pp");
+            DbScore? bestAccuracy = 
+                await GetTopScoreAsync(database, score.Beatmap, score.Player, score.GameMode, "is_best_accuracy");
+            DbScore? bestCombo = 
+                await GetTopScoreAsync(database, score.Beatmap, score.Player, score.GameMode, "is_best_combo");
+            DbScore? bestScore = 
+                await GetTopScoreAsync(database, score.Beatmap, score.Player, score.GameMode, "is_best_score");
+
+            /* If this play is a fail, we don't want to overwrite existing scores, but we do still
+             * want to save it. */
+            if (!score.Passed)
+            {
+                // Ready to insert the new score!
+                return (
+                    new DbScore(0, score, false, false, false, false),
+                    [bestPP, bestAccuracy, bestCombo, bestScore]
+                );
+            }
 
             // Overwrite best pp score if this score is better
             if (bestPP != null)
@@ -148,19 +177,24 @@ namespace OsuServer.External.Database.Rows
             } else isBestScore = true;
 
             // Ready to insert the new score!
-            return new DbScore(0, score, isBestPP, isBestAccuracy, isBestCombo, isBestScore);
+            return (
+                new DbScore(0, score, isBestPP, isBestAccuracy, isBestCombo, isBestScore),
+                [bestPP, bestAccuracy, bestCombo, bestScore]
+            );
         }
 
 
-        public static async Task<List<DbScore>> GetTopScoresAsync(OsuServerDb database, BanchoBeatmap beatmap)
+        public static async Task<List<DbScore>> GetTopScoresAsync(OsuServerDb database, BanchoBeatmap beatmap,
+            GameMode gameMode)
         {
             return await database.Score.FetchManyAsync(
                 new DbClause(
                     "WHERE",
-                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND is_pass = 1",
+                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND is_pass = 1 AND gamemode = @gamemode",
                     new()
                     {
-                        ["beatmap_id"] = beatmap.Info.Id
+                        ["beatmap_id"] = beatmap.Info.Id,
+                        ["gamemode"] = gameMode
                     }
                 ),
                 new DbClause(
@@ -175,16 +209,18 @@ namespace OsuServer.External.Database.Rows
         }
 
         public static async Task<DbScore?> GetTopScoreAsync(OsuServerDb database, BanchoBeatmap beatmap, 
-            Player player, string stat = "is_best_score")
+            Player player, GameMode gameMode, string stat = "is_best_score")
         {
             return await database.Score.FetchOneAsync(
                 new DbClause(
                     "WHERE",
-                    $"beatmap_id = @beatmap_id AND account_id = @account_id AND {stat} = 1",
+                    $"beatmap_id = @beatmap_id AND account_id = @account_id " +
+                    $"AND {stat} = 1 AND gamemode = @gamemode AND is_pass = 1",
                     new()
                     {
                         ["beatmap_id"] = beatmap.Info.Id,
-                        ["account_id"] = player.Id
+                        ["account_id"] = player.Id,
+                        ["gamemode"] = (int)gameMode
                     }
                 ),
                 new DbClause(
@@ -194,7 +230,8 @@ namespace OsuServer.External.Database.Rows
             );
         }
 
-        public static async Task<int> GetRank(OsuServerDb database, DbScore? score, BanchoBeatmap beatmap)
+        public static async Task<int> GetRank(OsuServerDb database, DbScore? score, BanchoBeatmap beatmap, 
+            GameMode gameMode)
         {
             int rank = 0;
             if (score != null)
@@ -202,17 +239,18 @@ namespace OsuServer.External.Database.Rows
                 rank = await database.Score.GetRankAsync(
                 score,
                 "total_score",
-                    $"beatmap_id = {beatmap.Info.Id} AND is_pass = 1"
+                    $"beatmap_id = {beatmap.Info.Id} AND is_pass = 1 AND gamemode = {(int)gameMode}"
                 );
             }
 
             return rank;
         }
 
-        public static async Task<int> GetBestRank(OsuServerDb database, BanchoBeatmap beatmap, Player player)
+        public static async Task<int> GetBestRank(OsuServerDb database, BanchoBeatmap beatmap, Player player, 
+            GameMode gameMode)
         {
-            DbScore? playerTopScore = await GetTopScoreAsync(database, beatmap, player);
-            return await GetRank(database, playerTopScore, beatmap);
+            DbScore? playerTopScore = await GetTopScoreAsync(database, beatmap, player, gameMode);
+            return await GetRank(database, playerTopScore, beatmap, gameMode);
         }
 
         public override DbColumn[] GetColumns()
