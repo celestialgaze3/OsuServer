@@ -417,7 +417,12 @@ namespace OsuServer.API
             ProfileStats oldStats = player.Stats[scoreData.Score.GameMode].Values;
 
             // Get beatmap information
-            BanchoBeatmap beatmap = await Bancho.GetBeatmap(database, beatmapMD5);
+            BanchoBeatmap? beatmap = await Bancho.GetBeatmap(database, beatmapMD5);
+            if (beatmap == null)
+            {
+                Console.WriteLine($"{player.Username} submitted a score on an unsubmitted map?");
+                return Results.Ok();
+            }
 
             // Get best rank before submission
             int previousRank = await DbScore.GetBestRank(database, beatmap, player, scoreData.Score.GameMode);
@@ -609,7 +614,14 @@ namespace OsuServer.API
             string passwordMD5 = request.Query["ha"].ToString();
 
             // Get beatmap information
-            BanchoBeatmap beatmap = await Bancho.GetBeatmap(database, beatmapMD5);
+            BanchoBeatmap? beatmap = await Bancho.GetBeatmap(database, beatmapMD5);
+
+            // Unsubmitted beatmaps
+            if (beatmap == null)
+            {
+                await response.Body.WriteAsync(Encoding.UTF8.GetBytes("-1|false"));
+                return Results.Ok();
+            }
 
             // Get player information
             OnlinePlayer? player = Bancho.GetPlayer(username, passwordMD5);

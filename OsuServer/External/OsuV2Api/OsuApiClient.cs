@@ -29,11 +29,14 @@ namespace OsuServer.External.OsuV2Api
         public async Task Start()
         {
             ClientCredentialsGrantRequest request = new(Id, Secret);
-            ClientCredentialsGrantResponse response = await request.Send(_client);
+            ClientCredentialsGrantResponse? response = await request.Send(_client);
+            if (response == null)
+                throw new InvalidOperationException("Unable to access osu! API; client credentials grant returned null");
+
             AccessToken = response.Token;
         }
 
-        public async Task<TResponse> SendRequest<TResponse>(OsuApiRequest<TResponse> request) where TResponse : OsuApiResponse, new()
+        public async Task<TResponse?> SendRequest<TResponse>(OsuApiRequest<TResponse> request) where TResponse : OsuApiResponse, new()
         {
             if (AccessToken == null)
                 throw new InvalidOperationException("Access token must be granted with Start() before using this client");

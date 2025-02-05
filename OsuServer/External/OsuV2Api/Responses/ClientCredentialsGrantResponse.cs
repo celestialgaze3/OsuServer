@@ -6,7 +6,7 @@ namespace OsuServer.External.OsuV2Api.Responses
     public class ClientCredentialsGrantResponse : OsuApiResponse
     {
         public AccessToken Token { get; set; }
-        public override async Task<OsuApiResponse> Parse(HttpResponseMessage response)
+        public override async Task<OsuApiResponse?> Parse(HttpResponseMessage response)
         {
             string content = await response.Content.ReadAsStringAsync();
 

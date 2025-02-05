@@ -6,7 +6,7 @@ namespace OsuServer.External.OsuV2Api
     public class OsuApiResponse
     {
 
-        public virtual Task<OsuApiResponse> Parse(HttpResponseMessage response)
+        public virtual Task<OsuApiResponse?> Parse(HttpResponseMessage response)
         {
             throw new NotImplementedException();
         }

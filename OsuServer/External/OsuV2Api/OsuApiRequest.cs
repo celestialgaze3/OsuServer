@@ -14,7 +14,7 @@ namespace OsuServer.External.OsuV2Api
             Content = content;
         }
 
-        public virtual async Task<TResponse> Send(HttpClient client)
+        public virtual async Task<TResponse?> Send(HttpClient client)
         {
             HttpRequestMessage request = new()
             {
@@ -37,7 +37,7 @@ namespace OsuServer.External.OsuV2Api
             HttpResponseMessage response = await client.SendAsync(request);
 
             Console.WriteLine("Got response: " + await response.Content.ReadAsStringAsync());
-            return (TResponse) await new TResponse().Parse(response); // surely this works
+            return (TResponse?) await new TResponse().Parse(response); // surely this works
         }
 
         /// <summary>

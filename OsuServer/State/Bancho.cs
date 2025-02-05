@@ -76,9 +76,11 @@ namespace OsuServer.State
             return player;
         }
 
-        public async Task<BanchoBeatmap> GetBeatmap(OsuServerDb database, string? beatmapMD5 = null, int? beatmapId = null)
+        public async Task<BanchoBeatmap?> GetBeatmap(OsuServerDb database, string? beatmapMD5 = null, int? beatmapId = null)
         {
-            Console.WriteLine($"Retrieving beatmap with search params MD5 {beatmapMD5} and ID {beatmapId}...");
+            Console.WriteLine($"Retrieving beatmap with search params " +
+                (beatmapMD5 != null ? $"MD5 {beatmapMD5}" : "") + (beatmapId != null ? $"ID {beatmapId}" : ""));
+
             if (beatmapMD5 == null && beatmapId == null)
                 throw new InvalidOperationException("A beatmap's hash or ID must be provided.");
 
@@ -110,7 +112,16 @@ namespace OsuServer.State
             }
 
             // Query osu! API for beatmap information
-            BeatmapLookupResponse response = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5, null, beatmapId.ToString()));
+            Console.WriteLine("Beatmap not found in database. Querying osu! API...");
+            BeatmapLookupResponse? response = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5, null, beatmapId.ToString()));
+
+            // Unsubmitted beatmaps
+            if (response == null)
+            {
+                Console.WriteLine("Beatmap is unsubmitted.");
+                return null;
+            }
+            
             int id = response.BeatmapExtended.Id;
 
             BanchoBeatmap beatmap = new BanchoBeatmap(this, response.BeatmapExtended);
