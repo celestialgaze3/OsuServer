@@ -40,6 +40,10 @@ namespace OsuServer.State
             DbScore dbScore = ScoreInfo.Item1;
             DbScore?[] previousBests = ScoreInfo.Item2;
 
+            DbScore? previousBestScore = null;
+            if (previousBests.Length == 4)
+                previousBestScore = previousBests[3];
+
             int assignedScoreId = await database.Score.InsertAsync(dbScore, false);
             await database.CommitTransaction();
 
@@ -51,7 +55,8 @@ namespace OsuServer.State
             _checksumToId.Add(scoreChecksum, assignedScoreId);
 
             // Update the player's state based on this score
-            await player.UpdateWithScore(database, submittedScore);
+            await player.UpdateWithScore(database, submittedScore,
+                previousBestScore != null ? await previousBestScore.GetScore(database, _bancho) : null);
 
             return (submittedScore, dbScore, previousBests);
         }

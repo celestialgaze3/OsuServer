@@ -5,22 +5,75 @@ using OsuServer.External.Database.Rows;
 using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OsuServer.State
 {
     public class PlayerScores
     {
-        private Player _player;
+        private OnlinePlayer _player;
         private Bancho _bancho;
         private Dictionary<int, int> _scoreIds;
         private List<KeyValuePair<int, int>>? _sortedTopPlays;
         public GameMode GameMode { get; set; }
-        public PlayerScores(Player player, Bancho bancho, GameMode gameMode)
+        public PlayerScores(OnlinePlayer player, Bancho bancho, GameMode gameMode)
         {
             _player = player;
             _bancho = bancho;
             GameMode = gameMode;
             _scoreIds = [];
+        }
+
+        public async Task<int> CalculatePlaycount(OsuServerDb database)
+        {
+            int playcount = (int)await database.Score.GetRowCountAsync(
+                new DbClause(
+                    "WHERE",
+                    "gamemode = @gamemode AND account_id = @account_id",
+                    new() { ["gamemode"] = (int)GameMode, ["account_id"] = _player.Id }
+                )
+            );
+            Console.WriteLine($"Calculated {_player.Username}'s playcount to be {playcount}");
+            return playcount;
+        }
+
+        public async Task<int> CalculateMaxCombo(OsuServerDb database)
+        {
+            int maxCombo = (int)await database.Score.MaxColumn<uint>("max_combo",
+                new DbClause(
+                    "WHERE",
+                    "gamemode = @gamemode AND account_id = @account_id",
+                    new() { ["gamemode"] = (int)GameMode, ["account_id"] = _player.Id }
+                )
+            );
+            Console.WriteLine($"Calculated {_player.Username}'s max combo to be {maxCombo}");
+            return maxCombo;
+        }
+
+        public async Task<long> CalculateTotalScore(OsuServerDb database)
+        {
+            long totalScore = (long)await database.Score.SumColumn<decimal>("total_score",
+                new DbClause(
+                    "WHERE",
+                    "gamemode = @gamemode AND account_id = @account_id",
+                    new() { ["gamemode"] = (int)GameMode, ["account_id"] = _player.Id }
+                )
+            );
+            Console.WriteLine($"Calculated {_player.Username}'s total score to be {totalScore}");
+            return totalScore;
+        }
+
+        public async Task<long> CalculateRankedScore(OsuServerDb database)
+        {
+            long rankedScore = (long)await database.Score.SumColumn<decimal>("total_score",
+                new DbClause(
+                    "WHERE",
+                    "is_best_score = 1 AND gamemode = @gamemode AND account_id = @account_id",
+                    new() { ["gamemode"] = (int)GameMode, ["account_id"] = _player.Id }
+                )
+            );
+            Console.WriteLine($"Calculated {_player.Username}'s ranked score to be {rankedScore}");
+            return rankedScore;
         }
 
         public double CalculatePerformancePoints()

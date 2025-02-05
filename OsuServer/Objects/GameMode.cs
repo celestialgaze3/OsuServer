@@ -18,8 +18,17 @@
         ManiaAutopilot = 11
     }
 
-    static class GameModeExtensions {
-    
+    static class GameModeHelper {
+        public static GameMode[] GetAll()
+        {
+            return Enum.GetValues<GameMode>();
+        }
+
+        public static GameMode[] GetMain()
+        {
+            return [GameMode.Standard, GameMode.Taiko, GameMode.Catch, GameMode.Mania];
+        }
+
         public static GameMode WithoutMods(this GameMode mode) {
             return (GameMode)((int)mode % 4); 
         }

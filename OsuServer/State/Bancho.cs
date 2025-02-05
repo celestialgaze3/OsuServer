@@ -196,9 +196,6 @@ namespace OsuServer.State
             // Updates this player's state from the database
             await player.UpdateFromDb(database);
 
-            // Recalculate stats
-            player.Stats[player.Status.GameMode].RecalculateStats();
-
             foreach (OnlinePlayer onlinePlayer in GetPlayers())
             {
                 // Send each online player a copy of this user's info

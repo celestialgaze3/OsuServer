@@ -2,6 +2,7 @@
 using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.Objects;
+using System.Numerics;
 
 namespace OsuServer.State
 {
@@ -79,18 +80,24 @@ namespace OsuServer.State
             }
         }
 
-        public async Task UpdateWithScore(OsuServerDb database, SubmittedScore score)
+        public async Task UpdateWithScore(OsuServerDb database, SubmittedScore score, Score? previousBestScore)
         {
             Scores[score.GameMode].Add(score, true);
-            await Stats[score.GameMode].UpdateWith(database, score);
+            await Stats[score.GameMode].UpdateWith(database, score, previousBestScore);
         }
 
         public async Task UpdateFromDb(OsuServerDb database)
         {
-            foreach (GameMode gameMode in Enum.GetValues(typeof(GameMode)))
+            foreach (GameMode gameMode in GameModeHelper.GetMain())
             {
+                Console.WriteLine($"Updating player state for gamemode {gameMode.ToString()}");
+                // Load existing stats
                 await Stats[gameMode].UpdateFromDb(database);
                 await Bancho.Scores.UpdateFromDb(database, this, gameMode);
+
+                // Recalculate stats
+                await Stats[gameMode].RecalculateStats(database);
+                await Stats[gameMode].SaveToDb(database);
             }
         }
 

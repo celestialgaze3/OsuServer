@@ -639,7 +639,7 @@ namespace OsuServer.API
             long totalScoreCount = await database.Score.GetRowCountAsync(
                 new DbClause(
                     "WHERE",
-                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND is_pass = 1 AND gamemode = @gamemode", 
+                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND gamemode = @gamemode", 
                     new() { 
                         ["beatmap_id"] = beatmap.Info.Id,
                         ["gamemode"] = (int)player.Status.GameMode

@@ -92,7 +92,8 @@ namespace OsuServer.External.Database.Rows
         /// </summary>
         /// <param name="database">The database instance</param>
         /// <param name="score">The Score to insert</param>
-        /// <returns>A tuple of the DbScore to insert, with an array of all previous best scores</returns>
+        /// <returns>A tuple of the DbScore to insert, with an array of all previous best scores in order of
+        /// best pp, accuracy, combo, then score</returns>
         public static async Task<(DbScore, DbScore?[])> PrepareInsertion(OsuServerDb database, Score score)
         {
             /* We want to find out if this play has bested previous plays in various stats. 

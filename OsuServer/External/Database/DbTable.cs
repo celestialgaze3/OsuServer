@@ -73,7 +73,8 @@ namespace OsuServer.External.Database
         {
             await _database.EnsureConnectionOpen();
 
-            using var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+            using var command = new MySqlCommand($"SELECT * FROM {Name} " +
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
             
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -107,7 +108,8 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             List<T> rows = new();
-            using var command = new MySqlCommand($"SELECT * FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+            using var command = new MySqlCommand($"SELECT * FROM {Name} " +
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
             
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -130,6 +132,65 @@ namespace OsuServer.External.Database
 
             return rows;
         }
+
+        /// <summary>
+        /// Gets the sum of all values in a column of this table
+        /// </summary>
+        /// <param name="clauses">The clauses to add to the select statement</param>
+        /// <returns>A list of all matching <typeparamref name="T"/></returns>
+        public async Task<V?> SumColumn<V>(string columnName, params DbClause[] clauses)
+        {
+            await _database.EnsureConnectionOpen();
+
+            using var command = new MySqlCommand($"SELECT SUM({columnName}) FROM {Name} " +
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+
+            if (_database.Transaction != null)
+                command.Transaction = _database.Transaction;
+
+            foreach (var clause in clauses)
+            {
+                clause.AddParameters(command);
+            }
+
+            LogSqlCommand(command);
+            await command.PrepareAsync();
+
+            object? resultObj = await command.ExecuteScalarAsync();
+            if (resultObj is DBNull) return default;
+            V? result = (V?)resultObj;
+            return result;
+        }
+
+        /// <summary>
+        /// Gets the max of all values in a column of this table
+        /// </summary>
+        /// <param name="clauses">The clauses to add to the select statement</param>
+        /// <returns>A list of all matching <typeparamref name="T"/></returns>
+        public async Task<V?> MaxColumn<V>(string columnName, params DbClause[] clauses)
+        {
+            await _database.EnsureConnectionOpen();
+
+            using var command = new MySqlCommand($"SELECT MAX({columnName}) FROM {Name} " +
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+
+            if (_database.Transaction != null)
+                command.Transaction = _database.Transaction;
+
+            foreach (var clause in clauses)
+            {
+                clause.AddParameters(command);
+            }
+
+            LogSqlCommand(command);
+            await command.PrepareAsync();
+
+            object? resultObj = await command.ExecuteScalarAsync();
+            if (resultObj is DBNull) return default;
+            V? result = (V?)resultObj;
+            return result;
+        }
+
 
         /// <summary>
         /// Gets the ordered index of a row when sorted by one of its columns
@@ -170,9 +231,8 @@ namespace OsuServer.External.Database
 
             LogSqlCommand(command);
 
-            double? rank = (double?)await command.ExecuteScalarAsync();
-            if (rank == null) return 0;
-            return (int)rank;
+            object? rank = (object?)await command.ExecuteScalarAsync();
+            return Convert.ToInt32(rank);
         }
 
         /// <summary>
@@ -223,7 +283,8 @@ namespace OsuServer.External.Database
         {
             await _database.EnsureConnectionOpen();
 
-            using var command = new MySqlCommand($"SELECT COUNT(*) FROM {Name} {string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
+            using var command = new MySqlCommand($"SELECT COUNT(*) FROM {Name} " +
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _connection);
 
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;

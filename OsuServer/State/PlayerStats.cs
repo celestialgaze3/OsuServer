@@ -27,7 +27,7 @@ namespace OsuServer.State
             _profileStats = new ProfileStats();
         }
 
-        public async Task UpdateWith(OsuServerDb database, SubmittedScore score)
+        public async Task UpdateWith(OsuServerDb database, SubmittedScore score, Score? previousBestScore)
         {
             // These stats are updated regardless of ranked status.
             _profileStats.Playcount += 1;
@@ -36,7 +36,10 @@ namespace OsuServer.State
             // These stats should only be incremented if the score should award pp
             if (score.Passed && score.Beatmap.ShouldAwardStatIncrease())
             {
-                _profileStats.RankedScore += score.TotalScore;
+                // Effectively give ranked score only to the best attempt
+                int oldTotalScore = previousBestScore != null ? previousBestScore.TotalScore : 0;
+                if (previousBestScore == null || score.TotalScore > oldTotalScore)
+                    _profileStats.RankedScore += score.TotalScore - oldTotalScore;
 
                 // Update player's maximum combo if the score's combo exceeds their previous
                 if (score.MaxCombo > _profileStats.MaxCombo)
@@ -46,19 +49,17 @@ namespace OsuServer.State
             }
 
             // Calculate and store the player's new total pp and accuracy
-            RecalculateStats();
-
+            await RecalculateStats(database);
             await SaveToDb(database);
         }
 
         /// <summary>
         /// Recalculates all of this player's stats
         /// </summary>
-        public void RecalculateStats()
+        public async Task RecalculateStats(OsuServerDb database)
         {
             _profileStats.PP = _player.Scores[GameMode].CalculatePerformancePoints();
             _profileStats.Accuracy = _player.Scores[GameMode].CalculateAccuracy();
-            // TODO: ranked and maybe total score if we decide to store fails permanently
         }
 
         public async Task<DbProfileStats?> GetDbRow(OsuServerDb database)
@@ -104,6 +105,13 @@ namespace OsuServer.State
 
             if (row == null)
             {
+                _profileStats.TotalScore = await _player.Scores[GameMode].CalculateTotalScore(database);
+                _profileStats.RankedScore = await _player.Scores[GameMode].CalculateRankedScore(database);
+                _profileStats.Accuracy = _player.Scores[GameMode].CalculateAccuracy();
+                _profileStats.Playcount = await _player.Scores[GameMode].CalculatePlaycount(database);
+                _profileStats.MaxCombo = await _player.Scores[GameMode].CalculateMaxCombo(database);
+                _profileStats.PP = _player.Scores[GameMode].CalculatePerformancePoints();
+
                 row = new(
                     _player.Id,
                     GameMode,
@@ -116,7 +124,8 @@ namespace OsuServer.State
                     _profileStats.MaxCombo
                 );
 
-                await table.InsertAsync(row);
+                if (row.Playcount.Value > 0)
+                    await table.InsertAsync(row);
             } 
             else
             {
