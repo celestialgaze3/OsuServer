@@ -2,7 +2,7 @@
 
 namespace OsuServer.External.Database
 {
-    public abstract class DbInstance
+    public abstract class DbInstance : IDisposable
     {
         public MySqlTransaction? Transaction;
         public MySqlConnection MySqlConnection { get; set; }
@@ -96,5 +96,15 @@ namespace OsuServer.External.Database
 
         /// <returns>The tables in the order they should be created</returns>
         public abstract DbTable[] GetTables();
+
+        public async Task DisposeAsync()
+        {
+            await MySqlConnection.DisposeAsync();
+        }
+
+        public void Dispose()
+        {
+            MySqlConnection.Dispose();
+        }
     }
 }

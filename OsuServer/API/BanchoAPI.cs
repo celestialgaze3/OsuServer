@@ -27,7 +27,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandlePackets(HttpContext context)
         {
-            OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -132,7 +132,7 @@ namespace OsuServer.API
 
         private async Task<IResult> HandleLogin(HttpContext context)
         {
-            OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -307,7 +307,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleScoreSubmission(HttpContext context)
         {
-            OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -467,7 +467,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleAccountRegistration(HttpContext context)
         {
-            OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -596,7 +596,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleLeaderboardRequest(HttpContext context)
         {
-            OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
