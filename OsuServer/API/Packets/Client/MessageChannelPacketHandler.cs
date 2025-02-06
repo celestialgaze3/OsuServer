@@ -1,4 +1,5 @@
 ﻿using OsuServer.API.Packets.Server;
+using OsuServer.External.Database;
 using OsuServer.Objects;
 using OsuServer.State;
 
@@ -8,11 +9,11 @@ namespace OsuServer.API.Packets.Client
     {
         public MessageChannelPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.MessageChannel, data, osuToken, bancho) { }
 
-        protected override void Handle(ref BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, BinaryReader reader)
         {
             OnlinePlayer? player = Bancho.GetPlayer(Token);
 
-            if (player == null) return;
+            if (player == null) return Task.CompletedTask;
 
             OsuMessage message = reader.ReadOsuMessage();
 
@@ -27,16 +28,16 @@ namespace OsuServer.API.Packets.Client
             if (recipient == null)
             {
                 player.Connection.AddPendingPacket(new NotificationPacket($"Your message could not sent to {message.Recipient} as the channel could not be found.", Token, Bancho));
-                return;
+                return Task.CompletedTask;
             }
 
             if (!recipient.HasMember(player)) 
             {
                 player.Connection.AddPendingPacket(new NotificationPacket($"Your message could not sent to {message.Recipient} as you have not joined that channel.", Token, Bancho));
-                return;
+                return Task.CompletedTask;
             }
 
-            if (content.Length == 0) return;
+            if (content.Length == 0) return Task.CompletedTask;
 
             const int MaxMessageLength = 2000;
             if (content.Length > MaxMessageLength)
@@ -49,6 +50,7 @@ namespace OsuServer.API.Packets.Client
             recipient.SendMessage(message);
 
             Console.WriteLine($"[#{recipient.Name}] {message.Sender}: {content}");
+            return Task.CompletedTask;
         }
     }
 }

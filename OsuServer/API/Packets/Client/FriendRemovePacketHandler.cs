@@ -1,4 +1,5 @@
-﻿using OsuServer.State;
+﻿using OsuServer.External.Database;
+using OsuServer.State;
 
 namespace OsuServer.API.Packets.Client
 {
@@ -6,7 +7,7 @@ namespace OsuServer.API.Packets.Client
     {
         public FriendRemovePacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.FriendRemove, data, osuToken, bancho) { }
 
-        protected override void Handle(ref BinaryReader reader)
+        protected override async Task Handle(OsuServerDb database, BinaryReader reader)
         {
             int id = reader.ReadInt32();
             OnlinePlayer? player = Bancho.GetPlayer(Token);
@@ -22,7 +23,7 @@ namespace OsuServer.API.Packets.Client
             }
 
             // Remove friend :(
-            player.RemoveFriend(toAdd);
+            await player.RemoveFriend(database, toAdd);
             Console.WriteLine($"{player.Username} removed {toAdd.Username} from their friends.");
         }
     }

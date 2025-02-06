@@ -1,4 +1,5 @@
 ﻿using OsuServer.API.Packets.Client;
+using OsuServer.External.Database;
 using OsuServer.State;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -69,12 +70,12 @@ namespace OsuServer.API.Packets
         }
 
         
-        public void Handle()
+        public async Task Handle(OsuServerDb database)
         {
             var stream = new MemoryStream(Data);
             var reader = new BinaryReader(stream);
 
-            Handle(ref reader);
+            await Handle(database, reader);
 
             reader.Dispose();
             stream.Dispose();
@@ -84,7 +85,7 @@ namespace OsuServer.API.Packets
         /// Update the state of Bancho based on the data within this packet
         /// </summary>
         /// <param name="reader">A BinaryReader loaded with the data contained within this packet</param>
-        protected abstract void Handle(ref BinaryReader reader);
+        protected abstract Task Handle(OsuServerDb database, BinaryReader reader);
 
         private static ClientPacketHandler ParseIncomingPacket(MemoryStream stream, string osuToken, Bancho bancho, BinaryReader binaryReader)
         {

@@ -1,4 +1,5 @@
 ﻿using OsuServer.API.Packets.Server;
+using OsuServer.External.Database;
 using OsuServer.State;
 
 namespace OsuServer.API.Packets.Client
@@ -10,11 +11,11 @@ namespace OsuServer.API.Packets.Client
         /// <summary>
         /// The client wants the stats of 
         /// </summary>
-        protected override void Handle(ref BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, BinaryReader reader)
         {
             OnlinePlayer? player = Bancho.GetPlayer(Token);
 
-            if (player == null) return;
+            if (player == null) return Task.CompletedTask;
             List<int> requestedUserIds = reader.ReadIntListShortLength();
 
             // Reply by sending the user stats for all users requested
@@ -28,6 +29,7 @@ namespace OsuServer.API.Packets.Client
             }
 
             Console.WriteLine("Received a user stats request for " + requestedUserIds.Count + " users by " + player.Username);
+            return Task.CompletedTask;
         }
     }
 }

@@ -8,15 +8,13 @@ namespace OsuServer.API.Packets
 
         public byte[] Encode()
         {
-            using (MemoryStream stream = new MemoryStream())
+            using MemoryStream stream = new();
+            using (BinaryWriter binaryWriter = new(stream))
             {
-                using (BinaryWriter binaryWriter = new BinaryWriter(stream))
-                {
-                    WriteData(binaryWriter);
-                }
-
-                return stream.ToArray();
+                WriteData(binaryWriter);
             }
+
+            return stream.ToArray();
         }
 
         public override byte[] GetBytes()
@@ -41,6 +39,7 @@ namespace OsuServer.API.Packets
         ChannelKick = 66,
         ChannelAutoJoin = 67,
         Privileges = 71,
+        FriendsList = 72,
         ProtocolVersion = 75,
         UserPresence = 83,
         Reconnect = 86,

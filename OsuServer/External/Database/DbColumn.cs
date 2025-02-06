@@ -56,7 +56,7 @@
     public class NullableDbColumn<T> : DbColumn
     {
         private T? _value;
-        public T? Value
+        public virtual T? Value
         {
             get
             {

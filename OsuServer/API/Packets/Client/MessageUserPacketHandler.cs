@@ -1,4 +1,5 @@
 ﻿using OsuServer.API.Packets.Server;
+using OsuServer.External.Database;
 using OsuServer.Objects;
 using OsuServer.State;
 
@@ -8,7 +9,7 @@ namespace OsuServer.API.Packets.Client
     {
         public MessageUserPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.MessageUser, data, osuToken, bancho) { }
 
-        protected override void Handle(ref BinaryReader reader)
+        protected override async Task Handle(OsuServerDb database, BinaryReader reader)
         {
             OnlinePlayer? player = Bancho.GetPlayer(Token);
 
@@ -40,7 +41,7 @@ namespace OsuServer.API.Packets.Client
             }
 
             // Respect "Block private messages from non-friends" setting
-            if (recipient.BlockingStrangerMessages && !recipient.HasFriended(player))
+            if (recipient.BlockingStrangerMessages && !await recipient.HasFriended(database, player))
             {
                 Console.WriteLine($"{message.Sender} tried to message {recipient.Username}, but DMs were blocked from non-friends.");
                 player.Connection.AddPendingPacket(new NotificationPacket($"You cannot message {recipient.Username} because " +
@@ -48,7 +49,7 @@ namespace OsuServer.API.Packets.Client
                 return;
             }
             
-            if (player.BlockingStrangerMessages && !player.HasFriended(recipient))
+            if (player.BlockingStrangerMessages && !await player.HasFriended(database, recipient))
             {
                 Console.WriteLine($"{message.Sender} tried to message {recipient.Username}, but their own DMs were " +
                     $"blocked from non-friends and they don't have {recipient.Username} added..");

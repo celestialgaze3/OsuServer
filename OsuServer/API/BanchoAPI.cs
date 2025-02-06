@@ -67,6 +67,33 @@ namespace OsuServer.API
                 return Results.Ok();
             }
 
+            Console.WriteLine("Requester is logged in with token " + osuToken);
+
+            /* Note: The issue with sending pending packets only on a client ping is that the client will not receive 
+             * responses to actions immediately. This is not too bad considering the previous behavior on things like the 
+             * user stats request packet or ping packet, is that the client would respond to the user stats packet or pong 
+             * packet that it received in return and respond by sending yet another ping or user stats request packet, 
+             * leading to the client/server spamming back and forth constantly. This is obviously not intended behavior, 
+             * so it makes me wonder if there is something wrong with the data so the client requests again, or if this 
+             * is the intended design of the actual osu!Bancho servers. */
+
+            // Read request body and handle all client packets within
+            List<ClientPacketHandler> packetsHandled = await HandleClientPackets(request, database, osuToken, Bancho);
+
+            // Only respond on a lone client ping
+            bool pingOnly = false;
+            if (packetsHandled.Count == 1 && packetsHandled[0] is PingPacketHandler)
+                pingOnly = true;
+
+            if (pingOnly)
+            {
+                byte[] pendingPackets = player.Connection.FlushPendingPackets();
+                Console.WriteLine($"Received a ping packet, responding with {pendingPackets.Length} bytes of pending packet data");
+
+                // Write pending server packets into response body
+                await response.Body.WriteAsync(pendingPackets);
+            }
+
             // Get the stored row of this user's account
             DbAccountTable accountTable = database.Account;
             DbAccount? dbAccount = await accountTable.FetchOneAsync(new DbClause("WHERE", "id = @id", new() { ["id"] = player.Id }));
@@ -84,37 +111,10 @@ namespace OsuServer.API
             dbAccount.LastActivityTime.Value = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             await accountTable.UpdateOneAsync(dbAccount);
 
-            Console.WriteLine("Requester is logged in with token " + osuToken);
-
-            /* Note: The issue with sending pending packets only on a client ping is that the client will not receive 
-             * responses to actions immediately. This is not too bad considering the previous behavior on things like the 
-             * user stats request packet or ping packet, is that the client would respond to the user stats packet or pong 
-             * packet that it received in return and respond by sending yet another ping or user stats request packet, 
-             * leading to the client/server spamming back and forth constantly. This is obviously not intended behavior, 
-             * so it makes me wonder if there is something wrong with the data so the client requests again, or if this 
-             * is the intended design of the actual osu!Bancho servers. */
-
-            // Read request body and handle all client packets within
-            List<ClientPacketHandler> packetsHandled = await HandleClientPackets(request, osuToken, Bancho);
-
-            // Only respond on a lone client ping
-            bool pingOnly = false;
-            if (packetsHandled.Count == 1 && packetsHandled[0] is PingPacketHandler)
-                pingOnly = true;
-
-            if (pingOnly)
-            {
-                byte[] pendingPackets = player.Connection.FlushPendingPackets();
-                Console.WriteLine($"Received a ping packet, responding with {pendingPackets.Length} bytes of pending packet data");
-
-                // Write pending server packets into response body
-                await response.Body.WriteAsync(pendingPackets);
-            }
-
             return Results.Ok();
         }
 
-        private async Task<List<ClientPacketHandler>> HandleClientPackets(HttpRequest request, string osuToken, Bancho bancho)
+        private async Task<List<ClientPacketHandler>> HandleClientPackets(HttpRequest request, OsuServerDb database, string osuToken, Bancho bancho)
         {
             List<ClientPacketHandler> handlers = new List<ClientPacketHandler>();
             using (var memoryStream = new MemoryStream())
@@ -124,7 +124,7 @@ namespace OsuServer.API
                 foreach (var handler in ClientPacketHandler.ParseIncomingPackets(memoryStream, osuToken, bancho))
                 {
                     handlers.Add(handler);
-                    handler.Handle();
+                    await handler.Handle(database);
                 }
             }
             return handlers;
@@ -194,6 +194,7 @@ namespace OsuServer.API
             // Create a connection and player instances for this client
             Connection connection = Bancho.CreateConnection(osuToken);
             OnlinePlayer player = await Bancho.CreatePlayer(database, account.Id.Value, connection, loginData);
+            await player.EnsureLoaded(database);
 
             // We now need to send packet information: starting with the protocol version. This is always 19.
             connection.AddPendingPacket(new ProtocolVersionPacket(19, osuToken, Bancho));
@@ -218,7 +219,9 @@ namespace OsuServer.API
             // Let the client know we're done sending channel information.
             connection.AddPendingPacket(new EndChannelInfoPacket(osuToken, Bancho));
 
-            // TODO: Friends list packet
+            // Send the client their friends list
+            connection.AddPendingPacket(new FriendsListPacket(player.Friends, osuToken, Bancho));
+
             // TODO: Silence packet
 
             // Send the client their own user information
@@ -581,7 +584,7 @@ namespace OsuServer.API
                 long registrationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
                 // Register the account
-                DbAccount toInsert = new(-1, username, email, passwordBcrypt, registrationTime, registrationTime);
+                DbAccount toInsert = new(-1, username, email, passwordBcrypt, registrationTime, registrationTime, null);
                 int accountId = await accountTable.InsertAsync(toInsert);
                 Console.WriteLine($"Created new account {username} with ID {accountId}!");
 

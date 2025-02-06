@@ -1,4 +1,5 @@
 ﻿using OsuServer.API.Packets.Server;
+using OsuServer.External.Database;
 using OsuServer.State;
 
 namespace OsuServer.API.Packets.Client
@@ -7,19 +8,19 @@ namespace OsuServer.API.Packets.Client
     {
         public ChannelJoinPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.ChannelJoin, data, osuToken, bancho) { }
 
-        protected override void Handle(ref BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, BinaryReader reader)
         {
             string channelName = reader.ReadOsuString().Substring(1); // Remove "#" at beginning
             Channel? channel = Bancho.GetChannel(channelName);
             OnlinePlayer? player = Bancho.GetPlayer(Token);
 
-            if (player == null) return;
+            if (player == null) return Task.CompletedTask;
 
             if (channel == null)
             {
                 player.Connection.AddPendingPacket(new NotificationPacket($"Unable to join channel #{channelName}; not found", Token, Bancho));
                 Console.WriteLine($"{player.Username} tried to join non-existent channel #{channelName}");
-                return;
+                return Task.CompletedTask;
             }
 
             if (player.JoinChannel(channel))
@@ -30,6 +31,8 @@ namespace OsuServer.API.Packets.Client
             {
                 player.Connection.AddPendingPacket(new NotificationPacket($"You do not have permission to join #{channelName}", Token, Bancho));
             }
+
+            return Task.CompletedTask;
         }
     }
 }

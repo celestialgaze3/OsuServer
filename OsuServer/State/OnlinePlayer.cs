@@ -2,7 +2,6 @@
 using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.Objects;
-using System.Numerics;
 
 namespace OsuServer.State
 {
@@ -86,8 +85,9 @@ namespace OsuServer.State
             await Stats[score.GameMode].UpdateWith(database, score, previousBestScore);
         }
 
-        public async Task UpdateFromDb(OsuServerDb database)
+        public async override Task UpdateFromDb(OsuServerDb database)
         {
+            await base.UpdateFromDb(database);
             foreach (GameMode gameMode in GameModeHelper.GetMain())
             {
                 Console.WriteLine($"Updating player state for gamemode {gameMode.ToString()}");
