@@ -605,7 +605,7 @@ namespace OsuServer.API
             // All parameters of this GET request
             bool editSongSelect = request.Query["s"] != 0;
             int leaderboardVersion = Int32.Parse(request.Query["vv"].ToString());
-            int leaderboardType = Int32.Parse(request.Query["v"].ToString());
+            LeaderboardType leaderboardType = (LeaderboardType)Int32.Parse(request.Query["v"].ToString());
             string beatmapMD5 = request.Query["c"].ToString();
             string filename = request.Query["f"].ToString();
             GameMode gamemode = (GameMode)Int32.Parse(request.Query["m"].ToString());
@@ -637,22 +637,33 @@ namespace OsuServer.API
             }
 
             // Get top 50 scores and player's personal best on the beatmap
-            List<DbScore> topScores = await DbScore.GetTopScoresAsync(database, beatmap, player.Status.GameMode);
-            DbScore? playerTopScore = await DbScore.GetTopScoreAsync(database, beatmap, player, player.Status.GameMode);
-            long totalScoreCount = await database.Score.GetRowCountAsync(
-                new DbClause(
-                    "WHERE",
-                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND gamemode = @gamemode", 
-                    new() { 
-                        ["beatmap_id"] = beatmap.Info.Id,
-                        ["gamemode"] = (int)player.Status.GameMode
-                    }
-                )
-            );
-            int scoreRank = await DbScore.GetLeaderboardRank(database, playerTopScore, beatmap, player.Status.GameMode);
+            GameMode gameMode = player.Status.GameMode;
+            DbScore? playerTopScore = await DbScore.GetTopScoreAsync(database, beatmap, player, gameMode);
+            List<DbScore> topScores;
+            long totalScoreCount;
+            int scoreRank;
 
-            List<string> responseBody = new()
+            switch(leaderboardType)
             {
+                case LeaderboardType.Global:
+                    topScores = await DbScore.GetTopScoresAsync(database, beatmap, gameMode);
+                    scoreRank = await DbScore.GetLeaderboardRank(database, playerTopScore, beatmap, gameMode);
+                    totalScoreCount = await DbScore.GetScoreCountAsync(database, beatmap, gameMode);
+                    break;
+                case LeaderboardType.Friends:
+                    topScores = await DbScore.GetFriendTopScoresAsync(database, player.Id, beatmap, gameMode);
+                    scoreRank = await DbScore.GetFriendLeaderboardRank(database, player.Id, playerTopScore, beatmap, gameMode);
+                    totalScoreCount = await DbScore.GetFriendScoreCountAsync(database, player.Id, beatmap, gameMode);
+                    break;
+                default:
+                    topScores = [];
+                    scoreRank = 0;
+                    totalScoreCount = 0;
+                    break;
+            }
+
+            List<string> responseBody =
+            [
                 // RankStatus|HasOsz2|BeatmapId|BeatmapSetId|ScoreCount|FeaturedArtistTrackId|FeaturedArtistLicense
                 $"{beatmap.GetRankStatus().ValueGetScores}|false|{beatmap.Info.Id}|{beatmap.Info.BeatmapSetId}|{totalScoreCount}|0|",
                 // Server offset
@@ -661,7 +672,7 @@ namespace OsuServer.API
                 beatmap.Info.BeatmapSet != null ? $"{beatmap.Info.FullName}" : string.Empty,
                 // TODO: Average rating
                 "0"
-            };
+            ];
 
             // No scores on the map, no need to return anything else
             if (topScores.Count == 0)

@@ -3,6 +3,7 @@ using OsuServer.State;
 
 namespace OsuServer.External.Database.Rows
 {
+    // TODO: some of the functions in this can be moved out/simplified
     public class DbScore : DbRow
     {
         public DbColumn<uint> Id { get; }
@@ -209,6 +210,70 @@ namespace OsuServer.External.Database.Rows
             );
         }
 
+        public static async Task<List<DbScore>> GetFriendTopScoresAsync(OsuServerDb database, int selfId, BanchoBeatmap beatmap,
+            GameMode gameMode)
+        {
+            return await database.Score.FetchManyAsync(
+                new DbClause(
+                    "INNER JOIN Friend ON",
+                    "Friend.id = @self_id",
+                    new() { ["self_id"] = selfId }
+                ),
+                new DbClause(
+                    "WHERE",
+                    "beatmap_id = @beatmap_id AND Friend.friend_id = Score.account_id AND is_best_score = 1 AND is_pass = 1 AND gamemode = @gamemode",
+                    new()
+                    {
+                        ["beatmap_id"] = beatmap.Info.Id,
+                        ["gamemode"] = gameMode
+                    }
+                ),
+                new DbClause(
+                    "ORDER BY",
+                    $"total_score DESC"
+                ),
+                new DbClause(
+                    "LIMIT",
+                    "50"
+                )
+            );
+        }
+
+        public static async Task<long> GetScoreCountAsync(OsuServerDb database, BanchoBeatmap beatmap, GameMode gameMode)
+        {
+            return await database.Score.GetRowCountAsync(
+                new DbClause(
+                    "WHERE",
+                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND gamemode = @gamemode",
+                    new()
+                    {
+                        ["beatmap_id"] = beatmap.Info.Id,
+                        ["gamemode"] = (int)gameMode
+                    }
+                )
+            );
+        }
+
+        public static async Task<long> GetFriendScoreCountAsync(OsuServerDb database, int selfId, BanchoBeatmap beatmap, GameMode gameMode)
+        {
+            return await database.Score.GetRowCountAsync(
+                 new DbClause(
+                    "INNER JOIN Friend ON",
+                    "Friend.id = @self_id",
+                    new() { ["self_id"] = selfId }
+                ),
+                new DbClause(
+                    "WHERE",
+                    "beatmap_id = @beatmap_id AND Friend.friend_id = Score.account_id AND is_best_score = 1 AND is_pass = 1 AND gamemode = @gamemode",
+                    new()
+                    {
+                        ["beatmap_id"] = beatmap.Info.Id,
+                        ["gamemode"] = gameMode
+                    }
+                )
+            );
+        }
+
         public static async Task<DbScore?> GetTopScoreAsync(OsuServerDb database, BanchoBeatmap beatmap, 
             Player player, GameMode gameMode, string stat = "is_best_score")
         {
@@ -242,6 +307,24 @@ namespace OsuServer.External.Database.Rows
                 "total_score",
                     $"beatmap_id = {beatmap.Info.Id} AND (is_best_score = 1 OR id={score.Id.Value}) " +
                     $"AND gamemode = {(int)gameMode}"
+                );
+            }
+
+            return rank;
+        }
+
+        public static async Task<int> GetFriendLeaderboardRank(OsuServerDb database, int selfId, DbScore? score, BanchoBeatmap beatmap,
+            GameMode gameMode)
+        {
+            int rank = 0;
+            if (score != null)
+            {
+                rank = await database.Score.GetRankAsync(
+                score,
+                "total_score",
+                $"beatmap_id = {beatmap.Info.Id} AND ((Friend.friend_id = Score.account_id AND is_best_score = 1) OR Score.id={score.Id.Value}) " +
+                $"AND gamemode = {(int)gameMode}",
+                $"INNER JOIN Friend ON Friend.id = {selfId}"
                 );
             }
 

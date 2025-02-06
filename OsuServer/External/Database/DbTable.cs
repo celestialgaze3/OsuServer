@@ -72,7 +72,7 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             using var command = new MySqlCommand($"SELECT * FROM {Name} " +
-                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _database.MySqlConnection);
+                $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))} LIMIT 1", _database.MySqlConnection);
             
             if (_database.Transaction != null)
                 command.Transaction = _database.Transaction;
@@ -196,7 +196,7 @@ namespace OsuServer.External.Database
         /// <param name="row">The row to get the ordered index of</param>
         /// <param name="orderByColumn">The column name to order by</param>
         /// <returns>The index of this column</returns>
-        public async Task<int> GetRankAsync(T row, string orderByColumn, string innerWhereClause = "")
+        public async Task<int> GetRankAsync(T row, string orderByColumn, string innerWhereClause = "", string innerJoinClause = "")
         {
             await _database.EnsureConnectionOpen();
             DbColumn[] identifyingColumns = row.GetIdentifyingColumns();
@@ -219,10 +219,11 @@ namespace OsuServer.External.Database
             );
 
             // Can't figure out how to parameterize this and have user variables at the same time. Not a big issue though
+            // TODO: scuffed as hell, but will be fixed if i figure out above
             using var command = new MySqlCommand($"SELECT ordered.position " +
                 $"FROM (SELECT {identifyingColumnsSelect}, {Name}.{orderByColumn}, (@pos := @pos + 1) AS position " +
-                $"FROM {Name} JOIN (SELECT @pos := 0) AS x " +
-                // TODO: scuffed as hell, but will be fixed if i figure out above
+                $"FROM {Name}" + (string.IsNullOrEmpty(innerJoinClause) ? "" : $" {innerJoinClause}") + 
+                " JOIN (SELECT @pos := 0) AS x " +
                 (innerWhereClause != string.Empty ? $"WHERE {innerWhereClause} " : "") +
                 $"ORDER BY {Name}.{orderByColumn} DESC) AS ordered " +
                 $"{whereClause.PrepareString()}", _database.MySqlConnection);

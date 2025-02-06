@@ -1,6 +1,4 @@
-﻿using MySqlConnector;
-using OsuServer.Objects;
-using System.Xml.Linq;
+﻿using OsuServer.Objects;
 
 namespace OsuServer.External.Database.Rows
 {
