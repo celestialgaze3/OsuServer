@@ -584,7 +584,7 @@ namespace OsuServer.API
                 long registrationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
                 // Register the account
-                DbAccount toInsert = new(-1, username, email, passwordBcrypt, registrationTime, registrationTime, null);
+                DbAccount toInsert = new(-1, username, email, passwordBcrypt, registrationTime, registrationTime);
                 int accountId = await accountTable.InsertAsync(toInsert);
                 Console.WriteLine($"Created new account {username} with ID {accountId}!");
 

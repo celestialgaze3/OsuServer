@@ -12,7 +12,6 @@ namespace OsuServer.External.Database.Tables
         password VARCHAR(255) NOT NULL,
         registration_time BIGINT NOT NULL,
         last_activity_time BIGINT NOT NULL,
-        friends BLOB,
 
         PRIMARY KEY(id)",
         "id")
@@ -39,8 +38,7 @@ namespace OsuServer.External.Database.Tables
                 reader.GetString(2), 
                 reader.GetString(3), 
                 reader.GetInt64(4), 
-                reader.GetInt64(5),
-                DbIntArrayColumn.Deserialize(reader, 6)
+                reader.GetInt64(5)
             );
         }
 

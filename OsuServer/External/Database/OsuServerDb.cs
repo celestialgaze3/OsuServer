@@ -9,6 +9,7 @@ namespace OsuServer.External.Database
         public DbProfileStatsTable ProfileStats { get; set; }
         public DbScoreTable Score { get; set; }
         public DbBeatmapTable Beatmap { get; set; }
+        public DbFriendTable Friend { get; set; }
 
         public OsuServerDb(MySqlConnection connection) : base(connection)
         {
@@ -16,11 +17,12 @@ namespace OsuServer.External.Database
             ProfileStats = new(this);
             Score = new(this);
             Beatmap = new(this);
+            Friend = new(this);
         }
 
         public override DbTable[] GetTables()
         {
-            return [Account, ProfileStats, Score, Beatmap];
+            return [Account, ProfileStats, Score, Beatmap, Friend];
         }
     }
 }

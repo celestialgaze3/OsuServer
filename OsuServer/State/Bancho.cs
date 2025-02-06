@@ -124,7 +124,7 @@ namespace OsuServer.State
             
             int id = response.BeatmapExtended.Id;
 
-            BanchoBeatmap beatmap = new BanchoBeatmap(this, response.BeatmapExtended);
+            BanchoBeatmap beatmap = new(this, response.BeatmapExtended);
 
             // Save to caches
             if (beatmapMD5 != null) 

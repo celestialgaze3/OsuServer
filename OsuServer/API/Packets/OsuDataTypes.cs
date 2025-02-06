@@ -80,9 +80,9 @@ namespace OsuServer.API.Packets
             return result;
         }
 
-        public static void WriteIntListShortLength(this BinaryWriter binaryWriter, List<int> list)
+        public static void WriteIntListShortLength(this BinaryWriter binaryWriter, IEnumerable<int> list)
         {
-            binaryWriter.Write((short) list.Count);
+            binaryWriter.Write((short) list.Count());
             foreach (int i in list)
             {
                 binaryWriter.Write(i);

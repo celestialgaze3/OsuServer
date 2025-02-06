@@ -277,6 +277,45 @@ namespace OsuServer.External.Database
 
         }
 
+        /// <summary>
+        /// Inserts a row into this table
+        /// </summary>
+        /// <param name="insertion">The <typeparamref name="T"/> to insert</param>
+        /// <param name="bodgyReconnect">See <see cref="DbInstance.CleanConnection"/>. Set to false to avoid
+        /// disposing the connection before a transaction completes. The bad news is that we can only ever
+        /// insert one row in a single transaction. Hopefully that never becomes an issue or I manage to
+        /// fix this problem.</param>
+        /// <returns>Information about the insertion of type <typeparamref name="U"/></returns>
+        public async Task DeleteOneAsync(T deletion)
+        {
+            await _database.EnsureConnectionOpen();
+
+            DbColumn[] identifyingColumns = deletion.GetIdentifyingColumns();
+
+            Dictionary<string, object?> values = new();
+            foreach (var column in identifyingColumns)
+            {
+                values.Add(column.Name, column.Object);
+            }
+
+            DbClause whereClause = new(
+                "WHERE",
+                string.Join(" AND ", identifyingColumns.Select(entry => $"{entry.Name} = @{entry.Name}")),
+                values
+            );
+
+            using var command = new MySqlCommand($"DELETE FROM {Name} {whereClause.PrepareString()}", _database.MySqlConnection);
+
+            if (_database.Transaction != null)
+                command.Transaction = _database.Transaction;
+
+            whereClause.AddParameters(command);
+
+            LogSqlCommand(command);
+            await command.PrepareAsync();
+            await command.ExecuteNonQueryAsync();
+        }
+
         public async Task<long> GetRowCountAsync(params DbClause[] clauses)
         {
             await _database.EnsureConnectionOpen();
@@ -311,6 +350,7 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             Dictionary<string, object?> updateArguments = insertion.GetUpdateArguments();
+            if (updateArguments.Count == 0) return; // Nothing to update
             DbClause setClause = new(
                 "SET",
                 string.Join(", ", updateArguments.Select(entry => $"{entry.Key} = @{entry.Key}")),

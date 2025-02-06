@@ -9,12 +9,13 @@ namespace OsuServer.State
         public int Id { get; private set; }
 
 
-        [MemberNotNullWhen(true, nameof(_username), nameof(Friends))]
+        [MemberNotNullWhen(true, nameof(_username), nameof(Friends), nameof(_loadedFriends))]
         public bool HasLoadedFromDb { get; private set; }
         public DbAccount? DatabaseInstance { get; private set; }
 
         private string? _username = null;
-        public List<int>? Friends { get; private set; } = null;
+        private HashSet<int> _loadedFriends = new HashSet<int>();
+        public HashSet<int>? Friends { get; private set; } = null;
 
 
         public Player(int id)
@@ -43,8 +44,23 @@ namespace OsuServer.State
                 throw new InvalidOperationException($"Saving before loading existing data from the database " +
                     $"will result in saving invalid data.");
 
-            account.Friends.BlobValue = [.. Friends];
-            
+            // Update with any new friend changes:
+            // New friend insertion
+            foreach (var friend in Friends)
+            {
+                if (_loadedFriends.Contains(friend)) continue;
+                await database.Friend.InsertAsync(new DbFriend(Id, friend));
+                _loadedFriends.Add(friend);
+            }
+
+            // Old friend deletion
+            foreach (var friend in _loadedFriends)
+            {
+                if (Friends.Contains(friend)) continue;
+                await database.Friend.DeleteOneAsync(new DbFriend(Id, friend));
+                _loadedFriends.Remove(friend);
+            }
+
             await database.Account.UpdateOneAsync(account);
         }
 
@@ -58,13 +74,15 @@ namespace OsuServer.State
             if (dbAccount != null)
             {
                 _username = dbAccount.Username.Value;
-                Friends = !dbAccount.Friends.ValueIsNull ? [.. dbAccount.Friends.BlobValue] : [];
+                Friends = (await GetFriends(database))
+                    .Select(friend => friend.FriendId.Value).ToHashSet();
+                _loadedFriends = new HashSet<int>(Friends);
             }
 
             HasLoadedFromDb = true;
         }
 
-        public async Task<DbAccount?> GetRow(OsuServerDb database)
+        private async Task<DbAccount?> GetRow(OsuServerDb database)
         {
             if (DatabaseInstance != null) return DatabaseInstance;
 
@@ -73,6 +91,13 @@ namespace OsuServer.State
             );
 
             return DatabaseInstance;
+        }
+
+        private async Task<List<DbFriend>> GetFriends(OsuServerDb database)
+        {
+            return await database.Friend.FetchManyAsync(
+                new DbClause("WHERE", "id = @id", new() { ["id"] = Id })
+            );
         }
 
         public async Task AddFriend(OsuServerDb database, Player player)

@@ -47,6 +47,11 @@ namespace OsuServer.State
                 Stats[gameMode] = new PlayerStats(this, gameMode);
                 Scores[gameMode] = new PlayerScores(this, bancho, gameMode);
             }
+
+            if (Id == 3)
+            {
+                Privileges.Supporter = true;
+            }
         }
 
         public void SendMessage(OsuMessage message)
