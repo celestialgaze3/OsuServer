@@ -2,6 +2,7 @@
 using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.Objects;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OsuServer.State
 {
@@ -9,7 +10,21 @@ namespace OsuServer.State
     {
         // This player's unique token used to identify their requests ("osu-token" in headers)
         public Connection Connection { get; private set; }
-        public string Username { get; private set; }
+
+        /// <summary>
+        /// The username at login. May have incorrect case.
+        /// </summary>
+        private string _loginUsername;
+        public new string Username
+        {
+            get
+            {
+                if (base.Username != null)
+                    return base.Username;
+                return _loginUsername;
+            }
+        }
+
         public Bancho Bancho { get; private set; }
         public Presence Presence { get; private set; }
         public Status Status { get; private set; }
@@ -25,14 +40,14 @@ namespace OsuServer.State
         public DateTime LoginTime { get; private set; }
         public Dictionary<GameMode, PlayerScores> Scores { get; private set; }
 
-        public OnlinePlayer(int id, Bancho bancho, Connection connection, LoginData loginData)
-            : base(id)
+        public OnlinePlayer(Player player, Bancho bancho, Connection connection, LoginData loginData)
+            : base(player)
         {
             Bancho = bancho;
-            Username = loginData.Username;
+            _loginUsername = loginData.Username;
             Connection = connection;
             Privileges = new Privileges();
-            Stats = new Dictionary<GameMode, PlayerStats>();
+            Stats = [];
             Presence = new Presence();
             Status = new Status();
             Channels = [];
@@ -40,7 +55,7 @@ namespace OsuServer.State
             Presence.UtcOffset = loginData.UtcOffset;
             BlockingStrangerMessages = loginData.DisallowPrivateMessages;
             LoginTime = DateTime.Now;
-            Scores = new Dictionary<GameMode, PlayerScores>();
+            Scores = [];
 
             foreach (GameMode gameMode in Enum.GetValues(typeof(GameMode)))
             {
@@ -48,10 +63,7 @@ namespace OsuServer.State
                 Scores[gameMode] = new PlayerScores(this, bancho, gameMode);
             }
 
-            if (Id == 3)
-            {
-                Privileges.Supporter = true;
-            }
+            Privileges.Supporter = true;
         }
 
         public void SendMessage(OsuMessage message)

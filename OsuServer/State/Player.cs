@@ -9,7 +9,7 @@ namespace OsuServer.State
         public int Id { get; private set; }
 
 
-        [MemberNotNullWhen(true, nameof(_username), nameof(Friends), nameof(_loadedFriends))]
+        [MemberNotNullWhen(true, nameof(_username), nameof(Username), nameof(Friends), nameof(_loadedFriends))]
         public bool HasLoadedFromDb { get; private set; }
         public DbAccount? DatabaseInstance { get; private set; }
 
@@ -17,10 +17,33 @@ namespace OsuServer.State
         private HashSet<int> _loadedFriends = new HashSet<int>();
         public HashSet<int>? Friends { get; private set; } = null;
 
+        public string? Username {
+            get
+            {
+                return _username;
+            }
+        }
+
 
         public Player(int id)
         {
             Id = id;
+        }
+
+        /// <summary>
+        /// Copies the state of the given player instance
+        /// </summary>
+        /// <param name="player">The player to copy</param>
+        public Player(Player player)
+        {
+            Id = player.Id;
+            if (player.HasLoadedFromDb)
+            {
+                _username = player._username;
+                _loadedFriends = player._loadedFriends;
+                Friends = player.Friends;
+                HasLoadedFromDb = true;
+            }
         }
 
         public virtual async Task<string> GetUsername(OsuServerDb database)

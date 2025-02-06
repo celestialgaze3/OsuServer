@@ -61,19 +61,22 @@ namespace OsuServer.State
             return connection;
         }
 
-        public async Task<OnlinePlayer> CreatePlayer(OsuServerDb database, int id, Connection connection, LoginData data)
+        public async Task<OnlinePlayer> CreatePlayer(OsuServerDb database, int id,  Connection connection, LoginData data)
         {
             if (_tokenToPlayerId.ContainsKey(connection.Token)) return _playerIdToPlayer[_tokenToPlayerId[connection.Token]];
 
-            OnlinePlayer player = new OnlinePlayer(id, this, connection, data);
-            await OnPlayerConnect(database, player);
-            _tokenToPlayerId[connection.Token] = player.Id;
-            _nameToPlayerId[await player.GetUsername(database)] = player.Id;
-            _playerIdToPlayer[player.Id] = player;
+            Player player = new(id);
+            await player.UpdateFromDb(database);
+            OnlinePlayer onlinePlayer = new(player, this, connection, data);
+            await OnPlayerConnect(database, onlinePlayer);
+
+            _tokenToPlayerId[connection.Token] = onlinePlayer.Id;
+            _nameToPlayerId[await onlinePlayer.GetUsername(database)] = onlinePlayer.Id;
+            _playerIdToPlayer[onlinePlayer.Id] = onlinePlayer;
 
             // Map username + passwords to player IDs
-            _usernamePasswordMD5ToPlayerId[await player.GetUsername(database) + "#" + player.LoginData.Password] = player.Id;
-            return player;
+            _usernamePasswordMD5ToPlayerId[await onlinePlayer.GetUsername(database) + "#" + onlinePlayer.LoginData.Password] = onlinePlayer.Id;
+            return onlinePlayer;
         }
 
         public async Task<BanchoBeatmap?> GetBeatmap(OsuServerDb database, string? beatmapMD5 = null, int? beatmapId = null)

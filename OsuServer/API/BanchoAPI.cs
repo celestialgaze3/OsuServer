@@ -103,7 +103,7 @@ namespace OsuServer.API
                 Console.WriteLine("User seems to be signed into an account that does not exist? Telling client to reconnect.");
                 player.Connection.AddPendingPacket(new ReconnectPacket(1, osuToken, Bancho));
                 await response.Body.WriteAsync(player.Connection.FlushPendingPackets());
-
+                
                 return Results.Ok();
             }
 
@@ -116,7 +116,7 @@ namespace OsuServer.API
 
         private async Task<List<ClientPacketHandler>> HandleClientPackets(HttpRequest request, OsuServerDb database, string osuToken, Bancho bancho)
         {
-            List<ClientPacketHandler> handlers = new List<ClientPacketHandler>();
+            List<ClientPacketHandler> handlers = [];
             using (var memoryStream = new MemoryStream())
             {
                 await request.Body.CopyToAsync(memoryStream);
