@@ -1,6 +1,5 @@
 ﻿using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
-using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 
 namespace OsuServer.State
@@ -27,7 +26,8 @@ namespace OsuServer.State
         /// <param name="scoreChecksum">The checksum submitted by the client</param>
         /// <returns>A tuple with three items: the first one is the SubmittedScore, the second is the DbScore,
         /// and the third is an array of the old best scores</returns>
-        public async Task<(SubmittedScore, DbScore?, DbScore?[])> Submit(OsuServerDb database, OnlinePlayer player, Score score, string scoreChecksum)
+        public async Task<(SubmittedScore, DbScore?, DbScore?[])> Submit(OsuServerDb database, OnlinePlayer player, 
+            Score score, string scoreChecksum, byte[]? replayBytes)
         {
             if (IsSubmitted(scoreChecksum))
             {
@@ -36,7 +36,7 @@ namespace OsuServer.State
             }
 
             await database.StartTransaction();
-            (DbScore, DbScore?[]) ScoreInfo = await DbScore.PrepareInsertion(database, score);
+            (DbScore, DbScore?[]) ScoreInfo = await DbScore.PrepareInsertion(database, score, replayBytes);
             DbScore dbScore = ScoreInfo.Item1;
             DbScore?[] previousBests = ScoreInfo.Item2;
 

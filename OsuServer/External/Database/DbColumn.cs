@@ -1,4 +1,6 @@
-﻿namespace OsuServer.External.Database
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace OsuServer.External.Database
 {
     public abstract class DbColumn
     {
@@ -16,7 +18,7 @@
         public string Name { get; }
         public bool CanModify { get; }
         public bool HasBeenModified { get; set; } = false;
-        public bool ValueIsNull = false;
+        public bool ValueIsNull { get; set; } = false;
 
         protected DbColumn(string name, object? obj, bool canModify) 
         {

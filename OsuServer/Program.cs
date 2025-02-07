@@ -32,29 +32,32 @@ namespace OsuServer
             var app = builder.Build();
 
             // Bancho connections
-            app.MapPost("/", async (context) => await s_BanchoEndpoint.HandlePackets(context));
+            app.MapPost("/", (Delegate)s_BanchoEndpoint.HandlePackets);
 
             // Web connections, mostly for debug purposes to check if the server is online
-            app.MapGet("/", async (context) => await Handle(context));
-            app.MapGet("/index.php", async (context) => await Handle(context));
+            app.MapGet("/", (Delegate)Handle);
+            app.MapGet("/index.php", (Delegate)Handle);
 
             // Bancho connect endpoint
-            app.MapGet("/web/bancho_connect.php", async (context) => await s_BanchoEndpoint.HandleBanchoConnect(context));
+            app.MapGet("/web/bancho_connect.php", (Delegate)s_BanchoEndpoint.HandleBanchoConnect);
 
             // Player avatars (a.ppy.sh/{id})
-            app.MapGet("/{id:int}", async (HttpContext context, int id) => await s_BanchoEndpoint.HandleProfilePictureRequest(context, id));
+            app.MapGet("/{id:int}", (Delegate)s_BanchoEndpoint.HandleProfilePictureRequest);
 
             // Beatmap thumbnails (b.ppy.sh/thumb/{id})
-            app.MapGet("/thumb/{id}", async (HttpContext context, string id) => await s_BanchoEndpoint.HandleBeatmapThumbnailRequest(context, id));
+            app.MapGet("/thumb/{id}", (Delegate)s_BanchoEndpoint.HandleBeatmapThumbnailRequest);
 
             // Score submission
-            app.MapPost("/web/osu-submit-modular-selector.php", async (HttpContext context) => await s_BanchoEndpoint.HandleScoreSubmission(context));
+            app.MapPost("/web/osu-submit-modular-selector.php", (Delegate)s_BanchoEndpoint.HandleScoreSubmission);
 
             // Account registration
-            app.MapPost("/users", async (HttpContext context) => await s_BanchoEndpoint.HandleAccountRegistration(context));
+            app.MapPost("/users", (Delegate) s_BanchoEndpoint.HandleAccountRegistration);
 
             // Score submission
-            app.MapGet("/web/osu-osz2-getscores.php", async (HttpContext context) => await s_BanchoEndpoint.HandleLeaderboardRequest(context));
+            app.MapGet("/web/osu-osz2-getscores.php", (Delegate)s_BanchoEndpoint.HandleLeaderboardRequest);
+
+            // Replay retrieving
+            app.MapGet("/web/osu-getreplay.php", (Delegate)s_BanchoEndpoint.HandleReplayRequest);
 
             app.Run();
         }
@@ -64,8 +67,7 @@ namespace OsuServer
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
-            await response.WriteAsync($"{s_Bancho.Name} is up and running!");
-            return Results.Ok();
+            return Results.Ok($"{s_Bancho.Name} is up and running!");
         }
 
         public static async Task<OsuServerDb> GetDbConnection()

@@ -71,6 +71,7 @@ namespace OsuServer.External.Database
         {
             await _database.EnsureConnectionOpen();
 
+            // TODO: fetch only certain columns
             using var command = new MySqlCommand($"SELECT * FROM {Name} " +
                 $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))} LIMIT 1", _database.MySqlConnection);
             
@@ -106,6 +107,7 @@ namespace OsuServer.External.Database
             await _database.EnsureConnectionOpen();
 
             List<T> rows = new();
+            // TODO: fetch only certain columns
             using var command = new MySqlCommand($"SELECT * FROM {Name} " +
                 $"{string.Join(" ", clauses.Select(clause => clause.PrepareString()))}", _database.MySqlConnection);
             

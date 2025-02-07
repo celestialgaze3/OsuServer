@@ -25,13 +25,19 @@ namespace OsuServer.API
             this.Bancho = bancho;
         }
 
+        private async Task<IResult> WriteByteResponse(byte[] bytes, HttpResponse response)
+        {
+            await response.Body.WriteAsync(bytes);
+            await response.Body.FlushAsync();
+            return Results.Empty;
+        }
+
         public async Task<IResult> HandlePackets(HttpContext context)
         {
             using OsuServerDb database = await Program.GetDbConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
-            // await context.Response.BodyWriter.WriteAsync(Encoding.UTF8.GetBytes("test"));
             // Get the user's IP
             string remoteIp = GetRequestIP(context);
 
@@ -62,9 +68,7 @@ namespace OsuServer.API
 
                 Connection connection = Bancho.CreateConnection(osuToken);
                 connection.AddPendingPacket(new ReconnectPacket(1, osuToken, Bancho));
-                await response.Body.WriteAsync(connection.FlushPendingPackets());
-
-                return Results.Ok();
+                return await WriteByteResponse(connection.FlushPendingPackets(), response);
             }
 
             Console.WriteLine("Requester is logged in with token " + osuToken);
@@ -91,7 +95,7 @@ namespace OsuServer.API
                 Console.WriteLine($"Received a ping packet, responding with {pendingPackets.Length} bytes of pending packet data");
 
                 // Write pending server packets into response body
-                await response.Body.WriteAsync(pendingPackets);
+                await WriteByteResponse(pendingPackets, response);
             }
 
             // Get the stored row of this user's account
@@ -102,16 +106,14 @@ namespace OsuServer.API
             {
                 Console.WriteLine("User seems to be signed into an account that does not exist? Telling client to reconnect.");
                 player.Connection.AddPendingPacket(new ReconnectPacket(1, osuToken, Bancho));
-                await response.Body.WriteAsync(player.Connection.FlushPendingPackets());
-                
-                return Results.Ok();
+                return await WriteByteResponse(player.Connection.FlushPendingPackets(), response);
             }
 
             // Update the user's last activity time
             dbAccount.LastActivityTime.Value = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             await accountTable.UpdateOneAsync(dbAccount);
 
-            return Results.Ok();
+            return Results.Empty;
         }
 
         private async Task<List<ClientPacketHandler>> HandleClientPackets(HttpRequest request, OsuServerDb database, string osuToken, Bancho bancho)
@@ -170,9 +172,7 @@ namespace OsuServer.API
                 response.Headers.Append("cho-token", "incorrect-credentials");
                 Connection failedConnection = Bancho.TokenlessConnection("incorrect-credentials");
                 failedConnection.AddPendingPacket(new UserIdPacket((int)LoginFailureType.AuthenticationFailed, "incorrect-credentials", Bancho));
-                await response.Body.WriteAsync(failedConnection.FlushPendingPackets());
-
-                return Results.Ok();
+                return await WriteByteResponse(failedConnection.FlushPendingPackets(), response);
             }
 
             // Disallow this player from logging in again
@@ -231,9 +231,7 @@ namespace OsuServer.API
             // Flush pending server packets into response body
             byte[] data = connection.FlushPendingPackets();
             Console.WriteLine("Response data: " + BitConverter.ToString(data));
-            await response.Body.WriteAsync(data);
-
-            return Results.Ok();
+            return await WriteByteResponse(data, response);
         }
 
         public async Task<IResult> HandleBanchoConnect(HttpContext context)
@@ -270,9 +268,7 @@ namespace OsuServer.API
             {
                 byte[] profilePicture = await client.GetByteArrayAsync($"https://a.ppy.sh/{id}");
                 Console.WriteLine($"Sending data in response...");
-                await response.Body.WriteAsync(profilePicture);
-
-                return Results.Empty;
+                return await WriteByteResponse(profilePicture, response);
             }
             catch (Exception e)
             {
@@ -294,9 +290,7 @@ namespace OsuServer.API
             {
                 byte[] thumbnail = await client.GetByteArrayAsync($"https://b.ppy.sh/thumb/{filename}");
                 Console.WriteLine($"Sending data in response...");
-                await response.Body.WriteAsync(thumbnail);
-
-                return Results.Empty;
+                return await WriteByteResponse(thumbnail, response);
             }
             catch (Exception e)
             {
@@ -326,6 +320,18 @@ namespace OsuServer.API
             string encryptedClientHashesBase64 = request.Form["s"].ToString();
             string ivBase64 = request.Form["iv"].ToString();
             string token = request.Form["token"].ToString(); // Don't know what this is for but it's really long
+
+            // Replay file
+            IFormFile? file = null;
+            byte[]? replayBytes = null;
+            if (request.Form.Files.Count > 0)
+            {
+                file = request.Form.Files[0];
+
+                using MemoryStream stream = new();
+                await file.CopyToAsync(stream);
+                replayBytes = stream.ToArray();
+            }
 
             // Optional parameter
             string storyboardMD5 = "";
@@ -359,7 +365,6 @@ namespace OsuServer.API
             clientHashes = Encoding.UTF8.GetString(decryptedClientHashes).Split(":");
 
             Console.WriteLine($"Decrypted score data:");
-
             int i = 0;
             foreach (string scoreDataLine in scoreDataStr)
             {
@@ -425,7 +430,7 @@ namespace OsuServer.API
 
             // Update server state with this score
             (SubmittedScore, DbScore?, DbScore?[]) submittedScore = await Bancho.Scores.Submit(
-                database, player, scoreData.Score, scoreData.Checksum);
+                database, player, scoreData.Score, scoreData.Checksum, replayBytes);
             ScoreStats oldBestStats = await ScoreStats.FromDbScores(database, Bancho, submittedScore.Item3);
 
             // Get rank of submitted score
@@ -435,10 +440,7 @@ namespace OsuServer.API
             ScoreReport report = new(Bancho, beatmap.Info, player, oldStats, player.Stats[scoreData.Score.GameMode].Values,
                 oldBestStats, new ScoreStats(submittedScore.Item1));
             string clientResponse = report.GenerateString(previousRank, newRank, scoreData.Checksum);
-
-            await response.Body.WriteAsync(Encoding.UTF8.GetBytes(clientResponse));
-
-            return Results.Ok();
+            return await WriteByteResponse(Encoding.UTF8.GetBytes(clientResponse), response);
         }
         
         // TODO: move this out
@@ -558,7 +560,7 @@ namespace OsuServer.API
                 response.StatusCode = 400;
                 await response.WriteAsJsonAsync(formErrors);
 
-                return Results.BadRequest();
+                return Results.Empty;
             }
 
             // Client wants to create an account, not check inputs
@@ -617,8 +619,7 @@ namespace OsuServer.API
             // Unsubmitted beatmaps
             if (beatmap == null)
             {
-                await response.Body.WriteAsync(Encoding.UTF8.GetBytes("-1|false"));
-                return Results.Ok();
+                return await WriteByteResponse(Encoding.UTF8.GetBytes("-1|false"), response);
             }
 
             int beatmapId = beatmap.Info.Id;
@@ -683,8 +684,7 @@ namespace OsuServer.API
             // No scores on the map, no need to return anything else
             if (topScores.Count == 0)
             {
-                await response.Body.WriteAsync(Encoding.UTF8.GetBytes(string.Join("\n", responseBody)));
-                return Results.Ok();
+                return await WriteByteResponse(Encoding.UTF8.GetBytes(string.Join("\n", responseBody)), response);
             }
 
             // Add personal best score first
@@ -704,10 +704,8 @@ namespace OsuServer.API
                 responseBody.Add(await GetScoreString(database, score, rank));
             }
 
-            await response.Body.WriteAsync(Encoding.UTF8.GetBytes(string.Join("\n", responseBody)));
-            return Results.Ok();
+            return await WriteByteResponse(Encoding.UTF8.GetBytes(string.Join("\n", responseBody)), response);
         }
-
 
         private async Task<string> GetScoreString(OsuServerDb database, DbScore dbScore, int rank)
         {
@@ -715,7 +713,32 @@ namespace OsuServer.API
             return $"{dbScore.Id.Value}|{await score.Player.GetUsername(database)}|{score.TotalScore}|{score.MaxCombo}|" +
                 $"{score.Bads}|{score.Goods}|{score.Perfects}|{score.Misses}|{score.Katus}|{score.Gekis}|" +
                 $"{score.PerfectCombo}|{score.Mods.IntValue}|{score.Player.Id}|{rank}|{score.Timestamp / 1000}|" +
-                $"0"; // TODO: has replay (need replay saving system)
+                (dbScore.ReplayData.ValueIsNull ? 0 : 1);
+        }
+
+        public async Task<IResult> HandleReplayRequest(HttpContext context)
+        {
+            using OsuServerDb database = await Program.GetDbConnection();
+            HttpRequest request = context.Request;
+            HttpResponse response = context.Response;
+
+            Console.WriteLine($" - New replay request from {GetRequestIP(context)} - ");
+
+            // All parameters of this GET request
+            GameMode gamemode = (GameMode)Int32.Parse(request.Query["m"].ToString());
+            int scoreId = Int32.Parse(request.Query["c"].ToString());
+
+            DbScore? score = await database.Score.FetchOneAsync(
+                new DbClause("WHERE", "id = @id", new() { ["id"] = scoreId })
+            );
+
+            // Replay not found
+            if (score == null || score.ReplayData.ValueIsNull)
+            {
+                return Results.NotFound();
+            }
+
+            return Results.File(score.ReplayData.BlobValue);
         }
 
         private string GetRequestIP(HttpContext context)

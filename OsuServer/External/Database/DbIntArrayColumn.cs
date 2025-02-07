@@ -2,10 +2,9 @@
 
 namespace OsuServer.External.Database
 {
-    public class DbIntArrayColumn : NullableDbColumn<byte[]>
+    public class DbIntArrayColumn : DbBlobColumn<int[]>
     {
-
-        public int[]? BlobValue
+        public override int[]? BlobValue
         {
             get
             {
@@ -24,14 +23,14 @@ namespace OsuServer.External.Database
         public static int[]? Deserialize(MySqlDataReader stream, int ordinal)
         {
             if (stream.IsDBNull(ordinal)) return null;
-            byte[] friendsBytes;
+            byte[] bytes;
             using (var memoryStream = new MemoryStream())
             {
-                stream.GetStream(6).CopyTo(memoryStream);
-                friendsBytes = memoryStream.ToArray();
+                stream.GetStream(ordinal).CopyTo(memoryStream);
+                bytes = memoryStream.ToArray();
             }
 
-            return DbIntArrayColumn.Deserialize(friendsBytes);
+            return DbIntArrayColumn.Deserialize(bytes);
         }
 
         public static int[]? Deserialize(byte[]? value)
