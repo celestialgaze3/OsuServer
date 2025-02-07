@@ -1,6 +1,4 @@
-﻿using OsuServer.Objects;
-
-namespace OsuServer.Objects
+﻿namespace OsuServer.Objects
 {
     public class Status
     {

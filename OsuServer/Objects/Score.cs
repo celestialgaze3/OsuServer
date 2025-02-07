@@ -42,7 +42,7 @@ namespace OsuServer.Objects
             Grade = CalculateGrade(gameMode, mods, perfects, goods, bads, misses, passed);
             Mods = mods;
             Passed = passed;
-            GameMode = gameMode;
+            GameMode = gameMode.WithMods(mods);
             Player = player;
             Beatmap = beatmap;
             Timestamp = timestamp;
@@ -50,7 +50,7 @@ namespace OsuServer.Objects
 
         public static async Task<Score> Get(OsuServerDb database, Bancho bancho, DbScore dbScore)
         {
-            GameMode gameMode = (GameMode)dbScore.GameMode.Value;
+            GameMode gameMode = ((GameMode)dbScore.GameMode.Value).WithMods(new Mods(dbScore.Mods.Value));
             Mods mods = new(dbScore.Mods.Value);
             int perfects = dbScore.Perfects.Value;
             int goods = dbScore.Goods.Value;

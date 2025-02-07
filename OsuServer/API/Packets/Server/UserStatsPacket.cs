@@ -1,4 +1,5 @@
-﻿using OsuServer.State;
+﻿using OsuServer.Objects;
+using OsuServer.State;
 
 namespace OsuServer.API.Packets.Server
 {
@@ -17,7 +18,7 @@ namespace OsuServer.API.Packets.Server
             binaryWriter.WriteOsuString(Player.Status.InfoText); // info text
             binaryWriter.WriteOsuString(Player.Status.MapMD5); // map md5
             binaryWriter.Write(Player.Status.Mods.IntValue); // mods
-            binaryWriter.Write((byte) Player.Status.GameMode); // mode id
+            binaryWriter.Write((byte) Player.Status.GameMode.WithoutMods()); // mode id
             binaryWriter.Write(Player.Status.MapID); // mnap id
             binaryWriter.Write(Player.Stats[Player.Status.GameMode].Values.RankedScore); // ranked score
             binaryWriter.Write((float) Player.Stats[Player.Status.GameMode].Values.Accuracy); // acc

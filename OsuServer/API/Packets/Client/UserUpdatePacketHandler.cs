@@ -19,7 +19,7 @@ namespace OsuServer.API.Packets.Client
             player.Status.InfoText = reader.ReadOsuString();
             player.Status.MapMD5 = reader.ReadOsuString();
             player.Status.Mods = new Mods(reader.ReadInt32());
-            player.Status.GameMode = (GameMode) reader.ReadByte();
+            player.Status.GameMode = ((GameMode) reader.ReadByte()).WithMods(player.Status.Mods);
             player.Status.MapID = reader.ReadInt32();
 
             // Broadcast this update to all players
