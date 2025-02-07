@@ -1,11 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Org.BouncyCastle.Crypto;
-using OsuServer.External.Database;
-using OsuServer.External.Database.Rows;
-using OsuServer.External.OsuV2Api;
+﻿using OsuServer.External.Database;
 using OsuServer.Objects;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OsuServer.State
 {

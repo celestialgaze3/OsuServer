@@ -1,12 +1,6 @@
-﻿using OsuServer.External.Database;
-using OsuServer.External.Database.Rows;
-using OsuServer.External.OsuV2Api;
+﻿using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using OsuServer.State;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.Marshalling;
-
 namespace OsuServer.API
 {
     public class ScoreReport

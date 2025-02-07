@@ -40,9 +40,7 @@ namespace OsuServer.State
             DbScore dbScore = ScoreInfo.Item1;
             DbScore?[] previousBests = ScoreInfo.Item2;
 
-            DbScore? previousBestScore = null;
-            if (previousBests.Length == 4)
-                previousBestScore = previousBests[3];
+            DbScore? previousBestScore = previousBests[3];
 
             int assignedScoreId = await database.Score.InsertAsync(dbScore, false);
             await database.CommitTransaction();

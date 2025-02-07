@@ -169,8 +169,8 @@ namespace OsuServer.State
 
         public Player GetOfflinePlayer(int id)
         {
-            if (_playerIdToPlayer.ContainsKey(id)) 
-                return _playerIdToPlayer[id];
+            if (_playerIdToPlayer.TryGetValue(id, out OnlinePlayer? value)) 
+                return value;
 
             return new Player(id);
         }

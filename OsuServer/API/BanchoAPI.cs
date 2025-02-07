@@ -376,27 +376,20 @@ namespace OsuServer.API
             }
 
             // Parse the data from the score submission
-            ScoreData scoreData = await ScoreData.GetInstance(database, Bancho, scoreDataStr);
+            ScoreData? scoreData = await ScoreData.GetInstance(database, Bancho, passwordMD5, scoreDataStr);
+            if (scoreData == null || !(scoreData.Score.Player is OnlinePlayer))
+            {
+                /* It's like that the client got signed out due to a server restart. Respond with 
+                 * an empty message to keep it retrying. */
+                Console.WriteLine("Invalid score submission. ");
+                return Results.Ok();
+            }
+
+            OnlinePlayer player = (OnlinePlayer)scoreData.Score.Player;
 
             // Beatmap hash (again?)
             string beatmapMD5FromScore = scoreData.BeatmapMD5;
 
-            /* For some reason, if the client has supporter, a space is appended to the username in the score data.
-             * Let's remove it. */
-            string username = scoreData.PlayerUsername;
-            if (username.Last() == ' ') username = username.Substring(0, username.Length - 1);
-
-            /* Get the player instance (since we don't have the osu-token) by the username passwordMD5 combination
-             * We aren't just getting by username to prevent spoofed score submissions (while I'm not sure if that's 
-             * possible either way). */
-            OnlinePlayer? player = Bancho.GetPlayer(username, passwordMD5);
-
-            if (player == null)
-            {
-                // Client got signed out likely due to a server restart. Respond with an empty message to keep it retrying.
-                return Results.Ok();
-            }
-            
             // Compare score checksums
             string expectedChecksum = scoreData.Score.CalculateChecksum(beatmapMD5, player.Username, osuVersion, scoreData.ClientTime,
                 Encoding.UTF8.GetString(decryptedClientHashes), storyboardMD5);
@@ -428,7 +421,7 @@ namespace OsuServer.API
             }
 
             // Get best rank before submission
-            int previousRank = await DbScore.GetBestRank(database, beatmap, player, scoreData.Score.GameMode);
+            int previousRank = await DbScore.GetBestRank(database, beatmap.Info.Id, player.Id, scoreData.Score.GameMode);
 
             // Update server state with this score
             (SubmittedScore, DbScore?, DbScore?[]) submittedScore = await Bancho.Scores.Submit(
@@ -436,7 +429,7 @@ namespace OsuServer.API
             ScoreStats oldBestStats = await ScoreStats.FromDbScores(database, Bancho, submittedScore.Item3);
 
             // Get rank of submitted score
-            int newRank = await DbScore.GetLeaderboardRank(database, submittedScore.Item2, beatmap, scoreData.Score.GameMode);
+            int newRank = await DbScore.GetLeaderboardRank(database, submittedScore.Item2, beatmap.Info.Id, scoreData.Score.GameMode);
 
             // Send data back to client
             ScoreReport report = new(Bancho, beatmap.Info, player, oldStats, player.Stats[scoreData.Score.GameMode].Values,
@@ -616,6 +609,8 @@ namespace OsuServer.API
             string username = request.Query["us"].ToString();
             string passwordMD5 = request.Query["ha"].ToString();
 
+            Console.WriteLine($"Parameters: {beatmapMD5}, {username}, {leaderboardType}, {gamemode}, {mods.IntValue}");
+
             // Get beatmap information
             BanchoBeatmap? beatmap = await Bancho.GetBeatmap(database, beatmapMD5);
 
@@ -625,6 +620,8 @@ namespace OsuServer.API
                 await response.Body.WriteAsync(Encoding.UTF8.GetBytes("-1|false"));
                 return Results.Ok();
             }
+
+            int beatmapId = beatmap.Info.Id;
 
             // Get player information
             OnlinePlayer? player = Bancho.GetPlayer(username, passwordMD5);
@@ -638,7 +635,7 @@ namespace OsuServer.API
 
             // Get top 50 scores and player's personal best on the beatmap
             GameMode gameMode = player.Status.GameMode;
-            DbScore? playerTopScore = await DbScore.GetTopScoreAsync(database, beatmap, player, gameMode);
+            DbScore? playerTopScore;
             List<DbScore> topScores;
             long totalScoreCount;
             int scoreRank;
@@ -646,16 +643,25 @@ namespace OsuServer.API
             switch(leaderboardType)
             {
                 case LeaderboardType.Global:
-                    topScores = await DbScore.GetTopScoresAsync(database, beatmap, gameMode);
-                    scoreRank = await DbScore.GetLeaderboardRank(database, playerTopScore, beatmap, gameMode);
-                    totalScoreCount = await DbScore.GetScoreCountAsync(database, beatmap, gameMode);
+                    playerTopScore = await DbScore.GetTopScoreAsync(database, beatmapId, player.Id, gameMode);
+                    topScores = await DbScore.GetTopScoresAsync(database, beatmapId, gameMode);
+                    scoreRank = await DbScore.GetLeaderboardRank(database, playerTopScore, beatmapId, gameMode);
+                    totalScoreCount = await DbScore.GetScoreCountAsync(database, beatmapId, gameMode);
                     break;
                 case LeaderboardType.Friends:
-                    topScores = await DbScore.GetFriendTopScoresAsync(database, player.Id, beatmap, gameMode);
-                    scoreRank = await DbScore.GetFriendLeaderboardRank(database, player.Id, playerTopScore, beatmap, gameMode);
-                    totalScoreCount = await DbScore.GetFriendScoreCountAsync(database, player.Id, beatmap, gameMode);
+                    playerTopScore = await DbScore.GetTopScoreAsync(database, beatmapId, player.Id, gameMode);
+                    topScores = await DbScore.GetFriendTopScoresAsync(database, player.Id, beatmapId, gameMode);
+                    scoreRank = await DbScore.GetFriendLeaderboardRank(database, player.Id, playerTopScore, beatmapId, gameMode);
+                    totalScoreCount = await DbScore.GetFriendScoreCountAsync(database, player.Id, beatmapId, gameMode);
+                    break;
+                case LeaderboardType.Mods:
+                    playerTopScore = await DbScore.GetTopModdedScoreAsync(database, beatmapId, player.Id, mods, gameMode);
+                    topScores = await DbScore.GetModdedTopScoresAsync(database, beatmapId, mods, gameMode);
+                    scoreRank = await DbScore.GetModdedLeaderboardRank(database, mods, playerTopScore, beatmapId, gameMode);
+                    totalScoreCount = await DbScore.GetModdedScoreCountAsync(database, mods, beatmapId, gameMode);
                     break;
                 default:
+                    playerTopScore = null;
                     topScores = [];
                     scoreRank = 0;
                     totalScoreCount = 0;
@@ -701,7 +707,8 @@ namespace OsuServer.API
             await response.Body.WriteAsync(Encoding.UTF8.GetBytes(string.Join("\n", responseBody)));
             return Results.Ok();
         }
-        
+
+
         private async Task<string> GetScoreString(OsuServerDb database, DbScore dbScore, int rank)
         {
             Score score = await Score.Get(database, Bancho, dbScore);
