@@ -4,7 +4,7 @@ using OsuServer.External.OsuV2Api;
 
 namespace OsuServer.External.Database.Tables
 {
-    public class DbBeatmapTable(DbInstance database) : DbTable<DbBeatmap, int>(
+    public class DbBeatmapTable(DbInstance database) : DbTable<DbBeatmap>(
         database,
         "Beatmap",
         @"id INT UNSIGNED NOT NULL,
@@ -74,12 +74,6 @@ namespace OsuServer.External.Database.Tables
                     $"https://osu.ppy.sh/b/{id}"
                 )
             );
-        }
-
-        protected override async Task<int> ReadInsertion(MySqlDataReader reader)
-        {
-            await reader.ReadAsync();
-            return (int)reader.GetUInt32(0); // Returns id
         }
     }
 }

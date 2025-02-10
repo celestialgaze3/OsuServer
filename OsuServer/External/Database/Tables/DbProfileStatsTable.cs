@@ -4,7 +4,7 @@ using OsuServer.Objects;
 
 namespace OsuServer.External.Database.Tables
 {
-    public class DbProfileStatsTable(DbInstance database) : DbTable<DbProfileStats, int>(
+    public class DbProfileStatsTable(DbInstance database) : DbTable<DbProfileStats>(
         database,
         "ProfileStats",
         @"account_id INT UNSIGNED NOT NULL,
@@ -35,12 +35,6 @@ namespace OsuServer.External.Database.Tables
                 reader.GetDouble(7),
                 reader.GetInt32(8)
             );
-        }
-
-        protected override async Task<int> ReadInsertion(MySqlDataReader reader)
-        {
-            await reader.ReadAsync();
-            return (int)reader.GetUInt32(0); // Returns id
         }
     }
 }

@@ -3,7 +3,7 @@ using OsuServer.External.Database.Rows;
 
 namespace OsuServer.External.Database.Tables
 {
-    public class DbFriendTable(DbInstance database) : DbTable<DbFriend, int>(
+    public class DbFriendTable(DbInstance database) : DbTable<DbFriend>(
         database,
         "Friend",
         @"id INT UNSIGNED NOT NULL,
@@ -20,12 +20,6 @@ namespace OsuServer.External.Database.Tables
                 (int)reader.GetUInt32(0),
                 (int)reader.GetUInt32(1)
             );
-        }
-
-        protected override async Task<int> ReadInsertion(MySqlDataReader reader)
-        {
-            await reader.ReadAsync().ConfigureAwait(false);
-            return (int)reader.GetUInt32(0); // Returns id
         }
     }
 }

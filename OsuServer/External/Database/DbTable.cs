@@ -56,7 +56,7 @@ namespace OsuServer.External.Database
         }
     }
 
-    public abstract class DbTable<T, U> : DbTable where T : DbRow
+    public abstract class DbTable<T> : DbTable where T : DbRow
     {
         public DbTable(DbInstance database, string name, string schema, string insertionReturnColumns = "")
             : base(database, name, schema, insertionReturnColumns)
@@ -237,15 +237,11 @@ namespace OsuServer.External.Database
         }
 
         /// <summary>
-        /// Inserts a row into this table
+        /// Gets the command that would insert the given data into this table.
         /// </summary>
         /// <param name="insertion">The <typeparamref name="T"/> to insert</param>
-        /// <param name="bodgyReconnect">See <see cref="DbInstance.CleanConnection"/>. Set to false to avoid
-        /// disposing the connection before a transaction completes. The bad news is that we can only ever
-        /// insert one row in a single transaction. Hopefully that never becomes an issue or I manage to
-        /// fix this problem.</param>
-        /// <returns>Information about the insertion of type <typeparamref name="U"/></returns>
-        public async Task<U> InsertAsync(T insertion, bool bodgyReconnect = true)
+        /// <returns>The command (unexecuted)</returns>
+        protected async Task<MySqlCommand> GetInsertCommand(T insertion)
         {
             await _database.EnsureConnectionOpen();
 
@@ -253,7 +249,7 @@ namespace OsuServer.External.Database
             string columnNames = string.Join(", ", insertionArguments.Select(entry => entry.Key));
             string valueNames = string.Join(", ", insertionArguments.Select(entry => $"@{entry.Key}"));
 
-            using var command = new MySqlCommand($"INSERT INTO {Name}({columnNames}) VALUES ({valueNames})" +
+            var command = new MySqlCommand($"INSERT INTO {Name}({columnNames}) VALUES ({valueNames})" +
                 (_insertionReturnColumns.Length > 0 ? $" RETURNING {_insertionReturnColumns}" : ""), _database.MySqlConnection);
 
             if (_database.Transaction != null)
@@ -266,29 +262,26 @@ namespace OsuServer.External.Database
 
             LogSqlCommand(command);
             await command.PrepareAsync();
-
-            MySqlDataReader reader = await command.ExecuteReaderAsync();
-            U insertionResult = await ReadInsertion(reader);
-            await reader.DisposeAsync();
-
-            // *sigh*
-            _database.IsDirty = true;
-            if (bodgyReconnect)
-                await _database.CleanConnection();
-
-            return insertionResult;
-
+            
+            return command;
         }
 
         /// <summary>
         /// Inserts a row into this table
         /// </summary>
         /// <param name="insertion">The <typeparamref name="T"/> to insert</param>
-        /// <param name="bodgyReconnect">See <see cref="DbInstance.CleanConnection"/>. Set to false to avoid
-        /// disposing the connection before a transaction completes. The bad news is that we can only ever
-        /// insert one row in a single transaction. Hopefully that never becomes an issue or I manage to
-        /// fix this problem.</param>
-        /// <returns>Information about the insertion of type <typeparamref name="U"/></returns>
+        /// <returns>A task representing the asynchronous operation</returns>
+        public async Task<int> InsertAsync(T insertion)
+        {
+            using MySqlCommand command = await GetInsertCommand(insertion);
+            return await command.ExecuteNonQueryAsync();
+        }
+
+        /// <summary>
+        /// Deletes a row from this table
+        /// </summary>
+        /// <param name="insertion">The <typeparamref name="T"/> to delete</param>
+        /// <returns>A task representing the asynchronous operation</returns>
         public async Task DeleteOneAsync(T deletion)
         {
             await _database.EnsureConnectionOpen();
@@ -425,6 +418,37 @@ namespace OsuServer.External.Database
         /// <param name="reader">The data reader</param>
         /// <returns>The <typeparamref name="T"/> representing this record</returns>
         protected abstract T InterpretLatestRecord(MySqlDataReader reader);
+    }
+
+    public abstract class DbTable<T, U> : DbTable<T> where T : DbRow
+    {
+        protected DbTable(DbInstance database, string name, string schema, string insertionReturnColumns = "") 
+            : base(database, name, schema, insertionReturnColumns) {}
+
+        /// <summary>
+        /// Inserts a row into this table
+        /// </summary>
+        /// <param name="insertion">The <typeparamref name="T"/> to insert</param>
+        /// <param name="bodgyReconnect">See <see cref="DbInstance.CleanConnection"/>. Set to false to avoid
+        /// disposing the connection before a transaction completes. The bad news is that we can only ever
+        /// insert one row in a single transaction. Hopefully that never becomes an issue or I manage to
+        /// fix this problem.</param>
+        /// <returns>Information about the insertion of type <typeparamref name="U"/></returns>
+        public async Task<U> InsertAsync(T insertion, bool bodgyReconnect = true)
+        {
+            using MySqlCommand command = await GetInsertCommand(insertion);
+
+            MySqlDataReader reader = await command.ExecuteReaderAsync();
+            U insertionResult = await ReadInsertion(reader);
+            await reader.DisposeAsync();
+
+            // *sigh*
+            _database.IsDirty = true;
+            if (bodgyReconnect)
+                await _database.CleanConnection();
+
+            return insertionResult;
+        }
 
         /// <summary>
         /// Reads from the data reader returned by an insert operation, and updates this state of this object
