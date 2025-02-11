@@ -33,7 +33,7 @@ namespace OsuServer.API.Packets
                 return "";
             } else if (firstByte == 0x0b) // String identifier
             {
-                int length = (int) binaryReader.ReadULEB128();
+                int length = (int)binaryReader.ReadULEB128();
                 byte[] stringBytes = binaryReader.ReadBytes(length);
                 return Encoding.UTF8.GetString(stringBytes);
             } else
@@ -56,6 +56,7 @@ namespace OsuServer.API.Packets
             string text = binaryReader.ReadOsuString();
             string recipient = binaryReader.ReadOsuString();
             int senderId = binaryReader.ReadInt32();
+
             return new OsuMessage(sender, text, recipient, senderId);
         }
 
