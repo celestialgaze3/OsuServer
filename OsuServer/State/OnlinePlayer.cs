@@ -2,6 +2,7 @@
 using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.Objects;
+using OsuServer.Util;
 using System.Diagnostics.CodeAnalysis;
 
 namespace OsuServer.State
@@ -40,19 +41,18 @@ namespace OsuServer.State
         public DateTime LoginTime { get; private set; }
         public Dictionary<GameMode, PlayerScores> Scores { get; private set; }
 
-        public OnlinePlayer(Player player, Bancho bancho, Connection connection, LoginData loginData)
-            : base(player)
+        public OnlinePlayer(Player player, Bancho bancho, Connection connection, Geolocation geolocation,
+            LoginData loginData) : base(player)
         {
             Bancho = bancho;
             _loginUsername = loginData.Username;
             Connection = connection;
             Privileges = new Privileges();
             Stats = [];
-            Presence = new Presence();
+            Presence = new Presence(loginData.UtcOffset, geolocation, PresenceFilter.All);
             Status = new Status();
             Channels = [];
             LoginData = loginData;
-            Presence.UtcOffset = loginData.UtcOffset;
             BlockingStrangerMessages = loginData.DisallowPrivateMessages;
             LoginTime = DateTime.Now;
             Scores = [];

@@ -4,6 +4,7 @@ using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
 using OsuServer.External.OsuV2Api.Requests;
 using OsuServer.External.OsuV2Api.Responses;
+using OsuServer.Util;
 
 namespace OsuServer.State
 {
@@ -61,13 +62,14 @@ namespace OsuServer.State
             return connection;
         }
 
-        public async Task<OnlinePlayer> CreatePlayer(OsuServerDb database, int id,  Connection connection, LoginData data)
+        public async Task<OnlinePlayer> CreatePlayer(OsuServerDb database, int id,  Connection connection, Geolocation geolocation,
+            LoginData data)
         {
             if (_tokenToPlayerId.ContainsKey(connection.Token)) return _playerIdToPlayer[_tokenToPlayerId[connection.Token]];
 
             Player player = new(id);
             await player.UpdateFromDb(database);
-            OnlinePlayer onlinePlayer = new(player, this, connection, data);
+            OnlinePlayer onlinePlayer = new(player, this, connection, geolocation, data);
             await OnPlayerConnect(database, onlinePlayer);
 
             _tokenToPlayerId[connection.Token] = onlinePlayer.Id;

@@ -53,7 +53,7 @@ namespace OsuServer
             // Account registration
             app.MapPost("/users", (Delegate) s_BanchoEndpoint.HandleAccountRegistration);
 
-            // Score submission
+            // Leaderboard retrieval
             app.MapGet("/web/osu-osz2-getscores.php", (Delegate)s_BanchoEndpoint.HandleLeaderboardRequest);
 
             // Replay retrieving

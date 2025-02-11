@@ -12,6 +12,7 @@ using OsuServer.External.Database.Tables;
 using OsuServer.Objects;
 using OsuServer.State;
 using OsuServer.Util;
+using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -185,6 +186,18 @@ namespace OsuServer.API
                 return Results.Ok();
             }
 
+            // Determine the user's geolocation
+            Geolocation geolocation = await Geolocation.Retrieve(context, GetRequestIP(context));
+
+            // Update missing geolocation information if it was not successfully determined at registration
+            if (account.CountryCodeNum.ValueIsNull)
+            {
+                if (!geolocation.CountryCodeIsNull)
+                    account.CountryCodeNum.Value = (int)geolocation.CountryCode;
+
+                await accountTable.UpdateOneAsync(account);
+            }
+
             // We now need to send all of the information the client needs to be convinced it's fully connected.
 
             // Let's start by assigning an osu-token to this client.
@@ -193,7 +206,7 @@ namespace OsuServer.API
 
             // Create a connection and player instances for this client
             Connection connection = Bancho.CreateConnection(osuToken);
-            OnlinePlayer player = await Bancho.CreatePlayer(database, account.Id.Value, connection, loginData);
+            OnlinePlayer player = await Bancho.CreatePlayer(database, account.Id.Value, connection, geolocation, loginData);
             await player.EnsureLoaded(database);
 
             // We now need to send packet information: starting with the protocol version. This is always 19.
@@ -578,12 +591,14 @@ namespace OsuServer.API
                 // Save registration time
                 long registrationTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+                // Determine the users's geolocation
+                Geolocation location = await Geolocation.Retrieve(context, GetRequestIP(context));
+
                 // Register the account
-                DbAccount toInsert = new(-1, username, email, passwordBcrypt, registrationTime, registrationTime);
+                DbAccount toInsert = new(-1, username, email, passwordBcrypt, registrationTime, registrationTime,
+                    location.CountryCodeIsNull ? null : (int)location.CountryCode);
                 int accountId = await accountTable.InsertAsync(toInsert);
                 Console.WriteLine($"Created new account {username} with ID {accountId}!");
-
-                // TODO: set the account's geolocation based on their registration IP
             }
 
             return Results.Ok();
@@ -741,12 +756,17 @@ namespace OsuServer.API
             return Results.File(score.ReplayData.BlobValue);
         }
 
-        private string GetRequestIP(HttpContext context)
+        private string? GetRequestIP(HttpContext context)
         {
-            string remoteIp;
+            string? remoteIp = null;
 
-            // First we must check the headers to see if it has been proxied
-            if (context.Request.Headers.TryGetValue("X-Forwarded-For", out StringValues xForwardedFor))
+            // First we must check the headers to see if it has forwarded from cloudflare
+            if (context.Request.Headers.TryGetValue("CF-Connecting-IP", out StringValues cfConnectingIp))
+            {
+                remoteIp = cfConnectingIp.ToString();
+            }
+            // Or proxied in some way
+            else if (context.Request.Headers.TryGetValue("X-Forwarded-For", out StringValues xForwardedFor))
             {
                 // Get the first value (original IP)
                 remoteIp = xForwardedFor.ToString().Split(",")[0];
@@ -755,11 +775,6 @@ namespace OsuServer.API
             {
                 // If no header exists, just use the remote IP
                 remoteIp = context.Connection.RemoteIpAddress.ToString();
-            }
-            else
-            {
-                // If somehow we still don't have an IP
-                remoteIp = "Unknown";
             }
 
             return remoteIp;

@@ -12,6 +12,7 @@ namespace OsuServer.External.Database.Tables
         password VARCHAR(255) NOT NULL,
         registration_time BIGINT NOT NULL,
         last_activity_time BIGINT NOT NULL,
+        country_code_num TINYINT UNSIGNED,
 
         PRIMARY KEY(id)",
         "id")
@@ -33,12 +34,13 @@ namespace OsuServer.External.Database.Tables
         protected override DbAccount InterpretLatestRecord(MySqlDataReader reader)
         {
             return new DbAccount(
-                (int)reader.GetUInt32(0), 
-                reader.GetString(1), 
-                reader.GetString(2), 
-                reader.GetString(3), 
-                reader.GetInt64(4), 
-                reader.GetInt64(5)
+                (int)reader.GetUInt32(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetInt64(4),
+                reader.GetInt64(5),
+                reader.IsDBNull(6) ? null : reader.GetByte(6)
             );
         }
 

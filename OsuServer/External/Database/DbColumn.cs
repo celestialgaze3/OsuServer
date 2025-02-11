@@ -77,6 +77,19 @@ namespace OsuServer.External.Database
             }
         }
 
+        [MemberNotNullWhen(false, nameof(Value))]
+        public new bool ValueIsNull
+        {
+            get
+            {
+                return base.ValueIsNull;
+            }
+            set
+            {
+                base.ValueIsNull = value;
+            }
+        }
+
         public NullableDbColumn(string name, T? value, bool canModify = true) : base(name, value, canModify)
         {
             _value = value;

@@ -14,8 +14,8 @@ namespace OsuServer.API.Packets.Server
         {
             binaryWriter.Write(Player.Id); // player id
             binaryWriter.WriteOsuString(Player.Username); // username
-            binaryWriter.Write((byte) Player.Presence.UtcOffset); // utc offset
-            binaryWriter.Write((byte) Player.Presence.Geolocation.CountryCode); // country code
+            binaryWriter.Write((byte)(Player.Presence.UtcOffset + 24)); // utc offset
+            binaryWriter.Write((byte)Player.Presence.Geolocation.CountryCode); // country code
             binaryWriter.Write(Player.Privileges.IntValue); // privileges
             binaryWriter.Write(Player.Presence.Geolocation.Longitude); // longitude
             binaryWriter.Write(Player.Presence.Geolocation.Latitude); // latitude
