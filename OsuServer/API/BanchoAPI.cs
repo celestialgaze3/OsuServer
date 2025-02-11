@@ -651,6 +651,7 @@ namespace OsuServer.API
 
             // Get top 50 scores and player's personal best on the beatmap
             GameMode gameMode = player.Status.GameMode;
+            CountryCode countryCode = player.Presence.Geolocation.CountryCode;
             DbScore? playerTopScore;
             List<DbScore> topScores;
             long totalScoreCount;
@@ -670,11 +671,17 @@ namespace OsuServer.API
                     scoreRank = await DbScore.GetFriendLeaderboardRank(database, player.Id, playerTopScore, beatmapId, gameMode);
                     totalScoreCount = await DbScore.GetFriendScoreCountAsync(database, player.Id, beatmapId, gameMode);
                     break;
+                case LeaderboardType.Country:
+                    playerTopScore = await DbScore.GetTopScoreAsync(database, beatmapId, player.Id, gameMode);
+                    topScores = await DbScore.GetCountryTopScores(database, beatmapId, countryCode, gameMode);
+                    scoreRank = await DbScore.GetCountryLeaderboardRank(database, playerTopScore, countryCode, beatmapId, gameMode);
+                    totalScoreCount = await DbScore.GetCountryScoreCountAsync(database, beatmapId, countryCode, gameMode);
+                    break;
                 case LeaderboardType.Mods:
                     playerTopScore = await DbScore.GetTopModdedScoreAsync(database, beatmapId, player.Id, mods, gameMode);
                     topScores = await DbScore.GetModdedTopScoresAsync(database, beatmapId, mods, gameMode);
-                    scoreRank = await DbScore.GetModdedLeaderboardRank(database, mods, playerTopScore, beatmapId, gameMode);
-                    totalScoreCount = await DbScore.GetModdedScoreCountAsync(database, mods, beatmapId, gameMode);
+                    scoreRank = await DbScore.GetModdedLeaderboardRank(database, playerTopScore, beatmapId, mods, gameMode);
+                    totalScoreCount = await DbScore.GetModdedScoreCountAsync(database, beatmapId, mods, gameMode);
                     break;
                 default:
                     playerTopScore = null;

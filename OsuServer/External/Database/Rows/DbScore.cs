@@ -1,5 +1,7 @@
 ﻿using OsuServer.Objects;
 using OsuServer.State;
+using OsuServer.Util;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace OsuServer.External.Database.Rows
 {
@@ -290,6 +292,35 @@ namespace OsuServer.External.Database.Rows
             );
         }
 
+        public static async Task<List<DbScore>> GetCountryTopScores(OsuServerDb database, int beatmapId, CountryCode countryCode,
+            GameMode gameMode)
+        {
+            return await database.Score.FetchManyAsync(
+                new DbClause(
+                    "INNER JOIN",
+                    "Account ON Account.id = account_id"
+                ),
+                new DbClause(
+                    "WHERE",
+                    "beatmap_id = @beatmap_id AND country_code_num = @country_code_num AND gamemode = @gamemode",
+                    new()
+                    {
+                        ["beatmap_id"] = beatmapId,
+                        ["gamemode"] = gameMode,
+                        ["country_code_num"] = (int)countryCode
+                    }
+                ),
+                new DbClause(
+                    "ORDER BY",
+                    $"total_score DESC"
+                ),
+                new DbClause(
+                    "LIMIT",
+                    "50"
+                )
+            );
+        }
+
         public static async Task<long> GetScoreCountAsync(OsuServerDb database, int beatmapId, GameMode gameMode)
         {
             return await database.Score.GetRowCountAsync(
@@ -315,8 +346,7 @@ namespace OsuServer.External.Database.Rows
                 ),
                 new DbClause(
                     "WHERE",
-                    "beatmap_id = @beatmap_id AND Friend.friend_id = Score.account_id AND is_best_score = 1 " +
-                    "AND is_pass = 1 AND gamemode = @gamemode",
+                    "beatmap_id = @beatmap_id AND Friend.friend_id = Score.account_id AND is_best_score = 1 AND gamemode = @gamemode",
                     new()
                     {
                         ["beatmap_id"] = beatmapId,
@@ -326,12 +356,12 @@ namespace OsuServer.External.Database.Rows
             );
         }
 
-        public static async Task<long> GetModdedScoreCountAsync(OsuServerDb database, Mods mods, int beatmapId, GameMode gameMode)
+        public static async Task<long> GetModdedScoreCountAsync(OsuServerDb database, int beatmapId, Mods mods, GameMode gameMode)
         {
             return await database.Score.GetRowCountAsync(
                 new DbClause(
                     "WHERE",
-                    "beatmap_id = @beatmap_id AND mods = @mods AND is_best_modded_score = 1 AND is_pass = 1 AND gamemode = @gamemode",
+                    "beatmap_id = @beatmap_id AND mods = @mods AND is_best_modded_score = 1 AND gamemode = @gamemode",
                     new()
                     {
                         ["beatmap_id"] = beatmapId,
@@ -341,6 +371,28 @@ namespace OsuServer.External.Database.Rows
                 )
             );
         }
+        public static async Task<long> GetCountryScoreCountAsync(OsuServerDb database, int beatmapId, CountryCode countryCode, 
+            GameMode gameMode)
+        {
+            return await database.Score.GetRowCountAsync(
+                new DbClause(
+                    "INNER JOIN",
+                    "Account ON Account.id = account_id"
+                ),
+                new DbClause(
+                    "WHERE",
+                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND gamemode = @gamemode " +
+                    "AND country_code_num = @country_code_num",
+                    new()
+                    {
+                        ["beatmap_id"] = beatmapId,
+                        ["gamemode"] = gameMode,
+                        ["country_code_num"] = (int) countryCode
+                    }
+                )
+            );
+        }
+
 
         public static async Task<DbScore?> GetTopScoreAsync(OsuServerDb database, int beatmapId, 
             int playerId, GameMode gameMode, string stat = "is_best_score")
@@ -349,7 +401,7 @@ namespace OsuServer.External.Database.Rows
                 new DbClause(
                     "WHERE",
                     $"beatmap_id = @beatmap_id AND account_id = @account_id " +
-                    $"AND {stat} = 1 AND gamemode = @gamemode AND is_pass = 1",
+                    $"AND {stat} = 1 AND gamemode = @gamemode",
                     new()
                     {
                         ["beatmap_id"] = beatmapId,
@@ -414,7 +466,7 @@ namespace OsuServer.External.Database.Rows
             return rank;
         }
 
-        public static async Task<int> GetModdedLeaderboardRank(OsuServerDb database, Mods mods, DbScore? score, int beatmapId,
+        public static async Task<int> GetModdedLeaderboardRank(OsuServerDb database, DbScore? score, int beatmapId, Mods mods,
             GameMode gameMode)
         {
             int rank = 0;
@@ -425,6 +477,24 @@ namespace OsuServer.External.Database.Rows
                     "total_score",
                     $"beatmap_id = {beatmapId} AND mods = {mods.IntValue} AND (is_best_modded_score = 1 OR Score.id={score.Id.Value}) " +
                     $"AND gamemode = {(int)gameMode}"
+                );
+            }
+
+            return rank;
+        }
+
+        public static async Task<int> GetCountryLeaderboardRank(OsuServerDb database, DbScore? score, CountryCode countryCode, 
+            int beatmapId, GameMode gameMode)
+        {
+            int rank = 0;
+            if (score != null)
+            {
+                rank = await database.Score.GetRankAsync(
+                    score,
+                    "total_score",
+                    $"beatmap_id = {beatmapId} AND country_code_num = {(int)countryCode} AND " +
+                    $"(is_best_score = 1 OR Score.id={score.Id.Value}) AND gamemode = {(int)gameMode}",
+                    $"INNER JOIN Account ON Account.id = account_id"
                 );
             }
 

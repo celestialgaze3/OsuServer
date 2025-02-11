@@ -113,7 +113,14 @@ namespace OsuServer.State
             if (dbBeatmap != null)
             {
                 Console.WriteLine("Found beatmap in database!");
-                return new BanchoBeatmap(this, dbBeatmap.BeatmapExtended);
+                BanchoBeatmap found = new BanchoBeatmap(this, dbBeatmap.BeatmapExtended);
+
+                // Save to cache
+                if (beatmapMD5 != null)
+                    _beatmapMD5ToBeatmapId[beatmapMD5] = dbBeatmap.Id.Value;
+                _beatmapIdToBeatmap[dbBeatmap.Id.Value] = found;
+
+                return found;
             }
 
             // Query osu! API for beatmap information
@@ -133,8 +140,8 @@ namespace OsuServer.State
 
             // Save to caches
             if (beatmapMD5 != null) 
-                _beatmapMD5ToBeatmapId.Add(beatmapMD5, id);
-            _beatmapIdToBeatmap.Add(id, beatmap);
+                _beatmapMD5ToBeatmapId[beatmapMD5] = id;
+            _beatmapIdToBeatmap[id] = beatmap;
 
             // Save to database to avoid osu! API spam on server restarts
             await database.Beatmap.InsertAsync(new DbBeatmap(response.BeatmapExtended));
