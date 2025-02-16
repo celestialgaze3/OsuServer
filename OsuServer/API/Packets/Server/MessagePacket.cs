@@ -6,7 +6,8 @@ namespace OsuServer.API.Packets.Server
     public class MessagePacket : ServerPacket
     {
         OsuMessage Message;
-        public MessagePacket(OsuMessage message, string osuToken, Bancho bancho) : base((int) ServerPacketType.Message, osuToken, bancho) 
+        public MessagePacket(OsuMessage message) 
+            : base((int) ServerPacketType.Message) 
         {
             Message = message;
         }

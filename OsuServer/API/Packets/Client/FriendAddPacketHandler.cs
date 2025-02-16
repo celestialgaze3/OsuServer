@@ -5,16 +5,17 @@ namespace OsuServer.API.Packets.Client
 {
     public class FriendAddPacketHandler : ClientPacketHandler
     {
-        public FriendAddPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.FriendAdd, data, osuToken, bancho) { }
+        public FriendAddPacketHandler(byte[] data) 
+            : base((int) ClientPacketType.FriendAdd, data) { }
 
-        protected override async Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override async Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
             int id = reader.ReadInt32();
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return;
 
-            OnlinePlayer? toAdd = Bancho.GetPlayer(id);
+            OnlinePlayer? toAdd = bancho.GetPlayer(id);
 
             if (toAdd == null)
             {

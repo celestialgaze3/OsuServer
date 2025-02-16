@@ -6,14 +6,15 @@ namespace OsuServer.API.Packets.Client
 {
     public class UsersStatsRequestPacketHandler : ClientPacketHandler
     {
-        public UsersStatsRequestPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.UserStatsRequest, data, osuToken, bancho) { }
+        public UsersStatsRequestPacketHandler(byte[] data) 
+            : base((int) ClientPacketType.UserStats, data) { }
 
         /// <summary>
         /// The client wants the stats of 
         /// </summary>
-        protected override Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return Task.CompletedTask;
             List<int> requestedUserIds = reader.ReadIntListShortLength();
@@ -21,10 +22,10 @@ namespace OsuServer.API.Packets.Client
             // Reply by sending the user stats for all users requested
             foreach (int userId in requestedUserIds)
             {
-                OnlinePlayer? requestedPlayer = Bancho.GetPlayer(userId);
+                OnlinePlayer? requestedPlayer = bancho.GetPlayer(userId);
                 if (requestedPlayer != null)
                 {
-                    player.Connection.AddPendingPacket(new UserStatsPacket(requestedPlayer, player.Connection.Token, Bancho));
+                    player.Connection.AddPendingPacket(new UserStatsPacket(requestedPlayer));
                 }
             }
 

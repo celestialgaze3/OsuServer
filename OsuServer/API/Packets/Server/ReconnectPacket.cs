@@ -5,7 +5,7 @@ namespace OsuServer.API.Packets.Server
     public class ReconnectPacket : ServerPacket
     {
         int Milliseconds;
-        public ReconnectPacket(int ms, string osuToken, Bancho bancho) : base((int) ServerPacketType.Reconnect, osuToken, bancho) 
+        public ReconnectPacket(int ms) : base((int) ServerPacketType.Reconnect) 
         {
             Milliseconds = ms;
         }

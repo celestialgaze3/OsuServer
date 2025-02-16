@@ -5,7 +5,8 @@ namespace OsuServer.API.Packets.Server
     public class PrivilegesPacket : ServerPacket
     {
         int Privileges;
-        public PrivilegesPacket(int privileges, string osuToken, Bancho bancho) : base((int) ServerPacketType.Privileges, osuToken, bancho)
+        public PrivilegesPacket(int privileges) 
+            : base((int) ServerPacketType.Privileges)
         {
             Privileges = privileges;
         }

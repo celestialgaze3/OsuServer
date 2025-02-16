@@ -5,15 +5,16 @@ namespace OsuServer.API.Packets.Server
     public class UserIdPacket : ServerPacket
     {
 
-        int UserId;
-        public UserIdPacket(int userId, string osuToken, Bancho bancho) : base((int) ServerPacketType.Login, osuToken, bancho) 
+        private int _userId;
+        public UserIdPacket(int userId) 
+            : base((int) ServerPacketType.Login) 
         {
-            UserId = userId;
+            _userId = userId;
         }
 
         protected override void WriteData(BinaryWriter binaryWriter)
         {
-            binaryWriter.Write(UserId);
+            binaryWriter.Write(_userId);
         }
     }
 

@@ -41,6 +41,15 @@ namespace OsuServer.State
         public DateTime LoginTime { get; private set; }
         public Dictionary<GameMode, PlayerScores> Scores { get; private set; }
 
+        /// <summary>
+        /// Whether or not this player is in the lobby (multiplayer lobby selection screen)
+        /// </summary>
+        public bool IsInLobby { get; set; }
+
+        [MemberNotNullWhen(true, nameof(Match))]
+        public bool IsInMatch { get; private set; }
+        public Match? Match { get; private set; }
+
         public OnlinePlayer(Player player, Bancho bancho, Connection connection, Geolocation geolocation,
             LoginData loginData) : base(player)
         {
@@ -68,7 +77,7 @@ namespace OsuServer.State
 
         public void SendMessage(OsuMessage message)
         {
-            Connection.AddPendingPacket(new MessagePacket(message, Connection.Token, Connection.Bancho));
+            Connection.AddPendingPacket(new MessagePacket(message));
         }
 
         public bool JoinChannel(Channel channel)
@@ -121,6 +130,35 @@ namespace OsuServer.State
         public override Task<string> GetUsername(OsuServerDb database)
         {
             return Task.FromResult(Username);
+        }
+
+        public void JoinMatch(Match match)
+        {
+            if (match.Add(this))
+            {
+                IsInMatch = true;
+                Match = match;
+            }
+        }
+
+        public bool TryJoinMatch(Match match, string password)
+        {
+            bool successful = false;
+            if (successful = match.TryAdd(this, password))
+            {
+                IsInMatch = true;
+                Match = match;
+            }
+
+            return successful;
+        }
+
+        public void LeaveMatch()
+        {
+            if (Match == null) return;
+            Match.Remove(this);
+            IsInMatch = false;
+            Match = null;
         }
     }
 }

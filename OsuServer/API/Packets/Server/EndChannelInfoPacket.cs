@@ -4,7 +4,8 @@ namespace OsuServer.API.Packets.Server
 {
     public class EndChannelInfoPacket : ServerPacket
     {
-        public EndChannelInfoPacket(string osuToken, Bancho bancho) : base((int) ServerPacketType.EndChannelInfo, osuToken, bancho) { }
+        public EndChannelInfoPacket() 
+            : base((int) ServerPacketType.EndChannelInfo) { }
 
         protected override void WriteData(BinaryWriter binaryWriter)
         {

@@ -4,7 +4,8 @@ namespace OsuServer.API.Packets.Server
 {
     public class PongPacket : ServerPacket
     {
-        public PongPacket(string osuToken, Bancho bancho) : base((int) ServerPacketType.Pong, osuToken, bancho) { }
+        public PongPacket(Bancho bancho) 
+            : base((int) ServerPacketType.Pong) { }
 
         protected override void WriteData(BinaryWriter binaryWriter)
         {

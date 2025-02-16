@@ -1,5 +1,4 @@
-﻿using OsuServer.API.Packets.Server;
-using OsuServer.External.Database;
+﻿using OsuServer.External.Database;
 using OsuServer.Objects;
 using OsuServer.State;
 
@@ -7,14 +6,15 @@ namespace OsuServer.API.Packets.Client
 {
     public class PresenceFilterPacketHandler : ClientPacketHandler
     {
-        public PresenceFilterPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.PresenceFilter, data, osuToken, bancho) { }
+        public PresenceFilterPacketHandler(byte[] data) 
+            : base((int) ClientPacketType.PresenceFilter, data) { }
 
         /// <summary>
         /// The client is sending its presence filter (telling us the user presences we should be sending to them)
         /// </summary>
-        protected override Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return Task.CompletedTask;
 

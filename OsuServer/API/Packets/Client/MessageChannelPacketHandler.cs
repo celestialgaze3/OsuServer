@@ -7,11 +7,12 @@ namespace OsuServer.API.Packets.Client
 {
     public class MessageChannelPacketHandler : ClientPacketHandler
     {
-        public MessageChannelPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.MessageChannel, data, osuToken, bancho) { }
+        public MessageChannelPacketHandler(byte[] data) 
+            : base((int) ClientPacketType.MessageChannel, data) { }
 
-        protected override Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return Task.CompletedTask;
 
@@ -23,17 +24,19 @@ namespace OsuServer.API.Packets.Client
 
             string content = message.Text.Trim();
 
-            Channel? recipient = Bancho.GetChannel(message.Recipient.Substring(1)); // Remove leading "#"
+            Channel? recipient = bancho.GetChannel(player, message.Recipient.Substring(1)); // Remove leading "#"
 
             if (recipient == null)
             {
-                player.Connection.AddPendingPacket(new NotificationPacket($"Your message could not sent to {message.Recipient} as the channel could not be found.", Token, Bancho));
+                player.Connection.AddPendingPacket(new NotificationPacket($"Your message could not sent to {message.Recipient} " +
+                    $"as the channel could not be found."));
                 return Task.CompletedTask;
             }
 
             if (!recipient.HasMember(player)) 
             {
-                player.Connection.AddPendingPacket(new NotificationPacket($"Your message could not sent to {message.Recipient} as you have not joined that channel.", Token, Bancho));
+                player.Connection.AddPendingPacket(new NotificationPacket($"Your message could not sent to {message.Recipient} " +
+                    $"as you have not joined that channel."));
                 return Task.CompletedTask;
             }
 
@@ -43,7 +46,8 @@ namespace OsuServer.API.Packets.Client
             if (content.Length > MaxMessageLength)
             {
                 content = content.Substring(0, MaxMessageLength);
-                player.Connection.AddPendingPacket(new NotificationPacket($"Your message was truncated as it exceeded {MaxMessageLength} characters.", Token, Bancho));
+                player.Connection.AddPendingPacket(new NotificationPacket($"Your message was truncated as it exceeded " +
+                    $"{MaxMessageLength} characters."));
             }
 
             // Forward message to channel

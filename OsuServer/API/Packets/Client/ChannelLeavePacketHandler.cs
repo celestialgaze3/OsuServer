@@ -6,9 +6,10 @@ namespace OsuServer.API.Packets.Client
 {
     public class ChannelLeavePacketHandler : ClientPacketHandler
     {
-        public ChannelLeavePacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.ChannelLeave, data, osuToken, bancho) { }
+        public ChannelLeavePacketHandler(byte[] data) 
+            : base((int) ClientPacketType.ChannelLeave, data) { }
 
-        protected override Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
             string channelName = reader.ReadOsuString();
 
@@ -21,14 +22,14 @@ namespace OsuServer.API.Packets.Client
                 return Task.CompletedTask;
             }
 
-            Channel? channel = Bancho.GetChannel(channelName);
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return Task.CompletedTask;
+            Channel? channel = bancho.GetChannel(player, channelName);
 
             if (channel == null)
             {
-                player.Connection.AddPendingPacket(new NotificationPacket($"Unable to leave channel #{channelName}; not found", Token, Bancho));
+                player.Connection.AddPendingPacket(new NotificationPacket($"Unable to leave channel #{channelName}; not found"));
                 Console.WriteLine($"{player.Username} tried to leave non-existent channel #{channelName}");
                 return Task.CompletedTask;
             }

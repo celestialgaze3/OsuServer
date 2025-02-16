@@ -5,7 +5,8 @@ namespace OsuServer.API.Packets.Server
     public class ProtocolVersionPacket : ServerPacket
     {
         int ProtocolVersion;
-        public ProtocolVersionPacket(int protocolVersion, string osuToken, Bancho bancho) : base((int) ServerPacketType.ProtocolVersion, osuToken, bancho)
+        public ProtocolVersionPacket(int protocolVersion) 
+            : base((int) ServerPacketType.ProtocolVersion)
         {
             ProtocolVersion = protocolVersion;
         }

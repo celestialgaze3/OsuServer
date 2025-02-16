@@ -12,7 +12,6 @@ using OsuServer.External.Database.Tables;
 using OsuServer.Objects;
 using OsuServer.State;
 using OsuServer.Util;
-using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -23,7 +22,7 @@ namespace OsuServer.API
         Bancho Bancho { get; set; }
         public BanchoAPI(Bancho bancho) 
         {
-            this.Bancho = bancho;
+            Bancho = bancho;
         }
 
         private async Task<IResult> WriteByteResponse(byte[] bytes, HttpResponse response)
@@ -68,7 +67,7 @@ namespace OsuServer.API
                 Console.WriteLine("Connection was not set up properly at login, it's likely the server had restarted. Telling client to reconnect.");
 
                 Connection connection = Bancho.CreateConnection(osuToken);
-                connection.AddPendingPacket(new ReconnectPacket(1, osuToken, Bancho));
+                connection.AddPendingPacket(new ReconnectPacket(1));
                 return await WriteByteResponse(connection.FlushPendingPackets(), response);
             }
 
@@ -82,6 +81,10 @@ namespace OsuServer.API
              * so it makes me wonder if there is something wrong with the data so the client requests again, or if this 
              * is the intended design of the actual osu!Bancho servers. */
 
+            /* Update: It's not the intended design, something is likely wrong here. Multiplayer packets are much more
+             * responsive on the actual servers. We'll allow match packets to be responded to immediately as well to
+             * address this for now. */
+
             // Read request body and handle all client packets within
             List<ClientPacketHandler> packetsHandled = await HandleClientPackets(request, database, osuToken, Bancho);
 
@@ -90,7 +93,14 @@ namespace OsuServer.API
             if (packetsHandled.Count == 1 && packetsHandled[0] is PingPacketHandler)
                 pingOnly = true;
 
-            if (pingOnly)
+            // Or if the packet is a match packet
+            bool isMatchPacket = false;
+            string? packetName = Enum.GetName<ClientPacketType>((ClientPacketType)packetsHandled[0].Id);
+            if (packetsHandled.Count >= 1 && packetName != null && packetName.StartsWith("Match"))
+                isMatchPacket = true;
+
+            // TODO: properly address this. maybe simply add problematic spammy packets to a blacklist?
+            if (pingOnly || isMatchPacket)
             {
                 byte[] pendingPackets = player.Connection.FlushPendingPackets();
                 Console.WriteLine($"Received a ping packet, responding with {pendingPackets.Length} bytes of pending packet data");
@@ -106,7 +116,7 @@ namespace OsuServer.API
             if (dbAccount == null)
             {
                 Console.WriteLine("User seems to be signed into an account that does not exist? Telling client to reconnect.");
-                player.Connection.AddPendingPacket(new ReconnectPacket(1, osuToken, Bancho));
+                player.Connection.AddPendingPacket(new ReconnectPacket(1));
                 return await WriteByteResponse(player.Connection.FlushPendingPackets(), response);
             }
 
@@ -124,10 +134,10 @@ namespace OsuServer.API
             {
                 await request.Body.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
-                foreach (var handler in ClientPacketHandler.ParseIncomingPackets(memoryStream, osuToken, bancho))
+                foreach (var handler in ClientPacketHandler.ParseIncomingPackets(memoryStream))
                 {
                     handlers.Add(handler);
-                    await handler.Handle(database);
+                    await handler.Handle(database, bancho, osuToken);
                 }
             }
             return handlers;
@@ -172,7 +182,7 @@ namespace OsuServer.API
             {
                 response.Headers.Append("cho-token", "incorrect-credentials");
                 Connection failedConnection = Bancho.TokenlessConnection("incorrect-credentials");
-                failedConnection.AddPendingPacket(new UserIdPacket((int)LoginFailureType.AuthenticationFailed, "incorrect-credentials", Bancho));
+                failedConnection.AddPendingPacket(new UserIdPacket((int)LoginFailureType.AuthenticationFailed));
                 return await WriteByteResponse(failedConnection.FlushPendingPackets(), response);
             }
 
@@ -210,16 +220,16 @@ namespace OsuServer.API
             await player.EnsureLoaded(database);
 
             // We now need to send packet information: starting with the protocol version. This is always 19.
-            connection.AddPendingPacket(new ProtocolVersionPacket(19, osuToken, Bancho));
+            connection.AddPendingPacket(new ProtocolVersionPacket(19));
 
             // We also need to tell the client its ID.
-            connection.AddPendingPacket(new UserIdPacket(player.Id, osuToken, Bancho));
+            connection.AddPendingPacket(new UserIdPacket(player.Id));
 
             // The privileges the client has (supporter, admin, etc)
-            connection.AddPendingPacket(new PrivilegesPacket(player.Privileges.IntValue, osuToken, Bancho));
+            connection.AddPendingPacket(new PrivilegesPacket(player.Privileges.IntValue));
 
             // Welcome to Bancho! notification, mostly for debug purposes.
-            connection.AddPendingPacket(new NotificationPacket($"Welcome to {Bancho.Name}!", osuToken, Bancho));
+            connection.AddPendingPacket(new NotificationPacket($"Welcome to {Bancho.Name}!"));
 
             /* Send the information of the available channels which are set to auto-join on connect.
              * The client will attempt to join these. */
@@ -230,16 +240,16 @@ namespace OsuServer.API
             }
 
             // Let the client know we're done sending channel information.
-            connection.AddPendingPacket(new EndChannelInfoPacket(osuToken, Bancho));
+            connection.AddPendingPacket(new EndChannelInfoPacket());
 
             // Send the client their friends list
-            connection.AddPendingPacket(new FriendsListPacket(player.Friends, osuToken, Bancho));
+            connection.AddPendingPacket(new FriendsListPacket(player.Friends));
 
             // TODO: Silence packet
 
             // Send the client their own user information
-            connection.AddPendingPacket(new UserPresencePacket(player, osuToken, Bancho));
-            connection.AddPendingPacket(new UserStatsPacket(player, osuToken, Bancho));
+            connection.AddPendingPacket(new UserPresencePacket(player));
+            connection.AddPendingPacket(new UserStatsPacket(player));
 
             // Flush pending server packets into response body
             byte[] data = connection.FlushPendingPackets();

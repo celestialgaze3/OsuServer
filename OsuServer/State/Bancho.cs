@@ -12,22 +12,28 @@ namespace OsuServer.State
     {
         public string Name { get; set; }
         public BanchoScores Scores { get; private set; }
+        public BanchoMatches Matches { get; private set; }
 
+        // Players/connections
         private Dictionary<string, int> _tokenToPlayerId = [];
         private Dictionary<string, int> _nameToPlayerId = [];
         private Dictionary<string, int> _usernamePasswordMD5ToPlayerId = []; // For identifying players from submitted scores
         private Dictionary<int, OnlinePlayer> _playerIdToPlayer = [];
         private Dictionary<string, Connection> _tokenToConnection = [];
 
-        private Dictionary<string, Channel> _nameToChannel = [];
-
+        // Beatmaps
         private Dictionary<int, BanchoBeatmap> _beatmapIdToBeatmap = [];
         private Dictionary<string, int> _beatmapMD5ToBeatmapId = [];
+
+        // Channels
+        private Dictionary<string, Channel> _nameToChannel = [];
+
 
         public Bancho(string name)
         {
             Name = name;
             Scores = new BanchoScores(this);
+            Matches = new BanchoMatches(this);
 
             CreateDefaultChannels();
         }
@@ -35,7 +41,7 @@ namespace OsuServer.State
         private void CreateDefaultChannels()
         {
             CreateChannel("osu", "Default channel").AutoJoin();
-            CreateChannel("osu2", "Default channel2").AutoJoin();
+            CreateChannel("lobby", "Channel for the lobby selection screen");
         }
 
         public List<OnlinePlayer> GetPlayers()
@@ -113,7 +119,7 @@ namespace OsuServer.State
             if (dbBeatmap != null)
             {
                 Console.WriteLine("Found beatmap in database!");
-                BanchoBeatmap found = new BanchoBeatmap(this, dbBeatmap.BeatmapExtended);
+                BanchoBeatmap found = new(this, dbBeatmap.BeatmapExtended);
 
                 // Save to cache
                 if (beatmapMD5 != null)
@@ -153,7 +159,7 @@ namespace OsuServer.State
         {
             if (_nameToChannel.ContainsKey(name)) return _nameToChannel[name];
 
-            Channel channel = new Channel(name, description, this);
+            Channel channel = new(name, description, this);
             _nameToChannel.Add(name, channel);
             return channel;
         }
@@ -197,10 +203,19 @@ namespace OsuServer.State
             return _playerIdToPlayer[_nameToPlayerId[name]];
         }
 
-        public Channel? GetChannel(string name)
+        public Channel? GetChannel(OnlinePlayer player, string name)
         {
-            if (!_nameToChannel.ContainsKey(name)) return null;
-            return _nameToChannel[name];
+            if (!_nameToChannel.TryGetValue(name, out Channel? value)) 
+            {
+                if (player.IsInMatch && name == MatchChannel.VisibleName)
+                {
+                    return player.Match.Channel;
+                }
+
+                return null;
+            }
+
+            return value;
         }
 
         public async Task OnPlayerConnect(OsuServerDb database, OnlinePlayer player)
@@ -211,12 +226,12 @@ namespace OsuServer.State
             foreach (OnlinePlayer onlinePlayer in GetPlayers())
             {
                 // Send each online player a copy of this user's info
-                onlinePlayer.Connection.AddPendingPacket(new UserPresencePacket(player, onlinePlayer.Connection.Token, this));
-                onlinePlayer.Connection.AddPendingPacket(new UserStatsPacket(player, onlinePlayer.Connection.Token, this));
+                onlinePlayer.Connection.AddPendingPacket(new UserPresencePacket(player));
+                onlinePlayer.Connection.AddPendingPacket(new UserStatsPacket(player));
 
                 // Send the connecting player a copy of all online user's info
-                player.Connection.AddPendingPacket(new UserPresencePacket(onlinePlayer, player.Connection.Token, this));
-                player.Connection.AddPendingPacket(new UserStatsPacket(onlinePlayer, player.Connection.Token, this));
+                player.Connection.AddPendingPacket(new UserPresencePacket(onlinePlayer));
+                player.Connection.AddPendingPacket(new UserStatsPacket(onlinePlayer));
             }
         }
 
@@ -224,7 +239,7 @@ namespace OsuServer.State
         {
             foreach (OnlinePlayer onlinePlayer in GetPlayers())
             {
-                onlinePlayer.Connection.AddPendingPacket(new UserStatsPacket(player, onlinePlayer.Connection.Token, this));
+                onlinePlayer.Connection.AddPendingPacket(new UserStatsPacket(player));
             }
         }
 
@@ -239,7 +254,7 @@ namespace OsuServer.State
             // Broadcast logout
             foreach (OnlinePlayer onlinePlayer in GetPlayers())
             {
-                onlinePlayer.Connection.AddPendingPacket(new LogoutPacket(player.Id, onlinePlayer.Connection.Token, this));
+                onlinePlayer.Connection.AddPendingPacket(new LogoutPacket(player.Id));
             }
         }
 

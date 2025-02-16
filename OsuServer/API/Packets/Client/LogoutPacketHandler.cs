@@ -5,12 +5,13 @@ namespace OsuServer.API.Packets.Client
 {
     public class LogoutPacketHandler : ClientPacketHandler
     {
-        public LogoutPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.Logout, data, osuToken, bancho) { }
+        public LogoutPacketHandler(byte[] data) 
+            : base((int) ClientPacketType.Logout, data) { }
 
-        protected override Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
             int info = reader.ReadInt32(); // 4 bytes in packet, not sure of the use
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return Task.CompletedTask;
 
@@ -22,7 +23,7 @@ namespace OsuServer.API.Packets.Client
             }
 
             // Log the player out
-            Bancho.RemovePlayer(player);
+            bancho.RemovePlayer(player);
             return Task.CompletedTask;
         }
     }

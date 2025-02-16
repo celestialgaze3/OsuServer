@@ -6,19 +6,20 @@ namespace OsuServer.API.Packets.Client
 {
     public class SelfStatsRequestPacketHandler : ClientPacketHandler
     {
-        public SelfStatsRequestPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.SelfStatsRequest, data, osuToken, bancho) { }
+        public SelfStatsRequestPacketHandler(byte[] data) 
+            : base((int) ClientPacketType.SelfStats, data) { }
 
         /// <summary>
         /// The client wants the stats of their own user
         /// </summary>
-        protected override Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return Task.CompletedTask;
 
             // Send stats to self
-            player.Connection.AddPendingPacket(new UserStatsPacket(player, player.Connection.Token, Bancho));
+            player.Connection.AddPendingPacket(new UserStatsPacket(player));
 
             Console.WriteLine("Received a self user stats request by " + player.Username);
             return Task.CompletedTask;

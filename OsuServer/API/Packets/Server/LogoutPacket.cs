@@ -5,7 +5,8 @@ namespace OsuServer.API.Packets.Server
     public class LogoutPacket : ServerPacket
     {
         int UserId;
-        public LogoutPacket(int userId, string osuToken, Bancho bancho) : base((int) ServerPacketType.Logout, osuToken, bancho) 
+        public LogoutPacket(int userId) 
+            : base((int) ServerPacketType.Logout) 
         {
             UserId = userId;
         }

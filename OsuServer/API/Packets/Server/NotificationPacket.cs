@@ -7,7 +7,8 @@ namespace OsuServer.API.Packets.Server
     public class NotificationPacket : ServerPacket
     {
         string Message;
-        public NotificationPacket(string message, string osuToken, Bancho bancho) : base((int) ServerPacketType.Notification, osuToken, bancho) 
+        public NotificationPacket(string message) 
+            : base((int) ServerPacketType.Notification) 
         {
             Message = message;
         }

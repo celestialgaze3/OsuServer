@@ -1,6 +1,4 @@
-﻿using OsuServer.State;
-
-namespace OsuServer.API.Packets
+﻿namespace OsuServer.API.Packets
 {
     /// <summary>
     /// Packets are simple: they have an ID and a byte array of their contained information. The data in this array
@@ -10,15 +8,11 @@ namespace OsuServer.API.Packets
     {
         public int Id { get; protected set; }
         public byte[] Data { get; protected set; }
-        public string Token { get; protected set; }
-        public Bancho Bancho { get; protected set; }
 
-        protected Packet(int id, byte[] data, string osuToken, Bancho bancho)
+        protected Packet(int id, byte[] data)
         {
             Id = id;
             Data = data;
-            Token = osuToken;
-            Bancho = bancho;
         }
 
         public virtual byte[] GetBytes()

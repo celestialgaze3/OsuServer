@@ -2,6 +2,7 @@
 {
     public class Mods
     {
+        public const int SpeedChangingMods = (int)Mod.HalfTime | (int)Mod.DoubleTime;
         public int IntValue { get; set; } = 0;
 
         public Mods() { }

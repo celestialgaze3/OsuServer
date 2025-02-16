@@ -1,20 +1,20 @@
-﻿using OsuServer.API.Packets.Server;
-using OsuServer.External.Database;
+﻿using OsuServer.External.Database;
 using OsuServer.State;
 
 namespace OsuServer.API.Packets.Client
 {
     public class ToggleBlockMessagesPacketHandler : ClientPacketHandler
     {
-        public ToggleBlockMessagesPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.ToggleBlockMessages, data, osuToken, bancho) { }
+        public ToggleBlockMessagesPacketHandler(byte[] data) 
+            : base((int) ClientPacketType.ToggleBlockMessages, data) { }
 
         /// <summary>
         /// Client has toggled the in-game setting to block messages from non-friends
         /// </summary>
-        protected override Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
             bool blocked = reader.ReadInt32() != 0;
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return Task.CompletedTask;
 

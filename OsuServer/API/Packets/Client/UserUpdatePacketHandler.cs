@@ -7,11 +7,12 @@ namespace OsuServer.API.Packets.Client
 {
     public class UserUpdatePacketHandler : ClientPacketHandler
     {
-        public UserUpdatePacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.UserUpdate, data, osuToken, bancho) { }
+        public UserUpdatePacketHandler(byte[] data) 
+            : base((int) ClientPacketType.UserUpdate, data) { }
 
-        protected override Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
             if (player == null) return Task.CompletedTask;
 
             // Update this player with the new information
@@ -23,7 +24,7 @@ namespace OsuServer.API.Packets.Client
             player.Status.MapID = reader.ReadInt32();
 
             // Broadcast this update to all players
-            Bancho.BroadcastUserUpdate(player);
+            bancho.BroadcastUserUpdate(player);
             return Task.CompletedTask;
         }
     }

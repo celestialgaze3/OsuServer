@@ -4,7 +4,7 @@ namespace OsuServer.API.Packets
 {
     public abstract class ServerPacket : Packet
     {
-        public ServerPacket(int id, string osuToken, Bancho bancho) : base(id, new byte[0], osuToken, bancho) { }
+        public ServerPacket(int id) : base(id, new byte[0]) { }
 
         public byte[] Encode()
         {
@@ -34,6 +34,17 @@ namespace OsuServer.API.Packets
         UserStats = 11,
         Logout = 12,
         Notification = 24,
+        MatchUpdate = 26,
+        MatchCreate = 27,
+        MatchRemove = 28,
+        MatchJoinSuccess = 36,
+        MatchJoinFail = 37,
+        MatchStart = 46,
+        MatchScoreUpdate = 48,
+        MatchPlayersLoaded = 53,
+        MatchFailed = 57,
+        MatchComplete = 58,
+        MatchSkip = 61,
         ChannelJoinSuccess = 64,
         Channel = 65,
         ChannelKick = 66,
@@ -41,8 +52,11 @@ namespace OsuServer.API.Packets
         Privileges = 71,
         FriendsList = 72,
         ProtocolVersion = 75,
+        MatchPlayerSkipped = 81,
         UserPresence = 83,
         Reconnect = 86,
-        EndChannelInfo = 89
+        MatchInvite = 88,
+        EndChannelInfo = 89,
+        MatchAbort = 106
     }
 }

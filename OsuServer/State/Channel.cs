@@ -7,12 +7,9 @@ namespace OsuServer.State
     {
         public string Name { get; private set; }
         public string Description { get; private set; }
-        public List<int> Members { get; private set; } = new List<int>();
+        public HashSet<int> Members { get; private set; } = [];
         private Bancho _bancho;
-
         public bool ShouldAutoJoin { get; private set; } = false;
-
-        private bool Joinable = true; // TODO: implement permissions/private channels
 
         public Channel(string name, string description, Bancho bancho)
         {
@@ -38,9 +35,10 @@ namespace OsuServer.State
             return true;
         }
 
-        public bool CanJoin(OnlinePlayer player)
+        // TODO: private channels
+        public virtual bool CanJoin(OnlinePlayer player)
         {
-            return Joinable;
+            return true;
         }
 
         public Channel AutoJoin()
@@ -68,7 +66,7 @@ namespace OsuServer.State
             OnlinePlayer? player = _bancho.GetPlayer(playerId);
             if (player == null) return;
 
-            player.Connection.AddPendingPacket(new ChannelPacket(this, player.Connection.Token, _bancho));
+            player.Connection.AddPendingPacket(new ChannelPacket(this));
         }
 
         public bool HasMember(OnlinePlayer player)
@@ -105,15 +103,15 @@ namespace OsuServer.State
         public void KickPlayer(OnlinePlayer player)
         {
             RemovePlayer(player);
-            player.Connection.AddPendingPacket(new ChannelKickPacket(Name, player.Connection.Token, _bancho));
+            player.Connection.AddPendingPacket(new ChannelKickPacket(Name));
         }
 
         public void SendInfo(OnlinePlayer player)
         {
-            player.Connection.AddPendingPacket(new ChannelPacket(this, player.Connection.Token, _bancho));
+            player.Connection.AddPendingPacket(new ChannelPacket(this));
             if (ShouldAutoJoin)
             {
-                player.Connection.AddPendingPacket(new ChannelAutoJoinPacket(this, player.Connection.Token, _bancho));
+                player.Connection.AddPendingPacket(new ChannelAutoJoinPacket(this));
             }
         }
     }

@@ -7,11 +7,12 @@ namespace OsuServer.API.Packets.Client
 {
     public class MessageUserPacketHandler : ClientPacketHandler
     {
-        public MessageUserPacketHandler(byte[] data, string osuToken, Bancho bancho) : base((int) ClientPacketType.MessageUser, data, osuToken, bancho) { }
+        public MessageUserPacketHandler(byte[] data) : 
+            base((int) ClientPacketType.MessageUser, data) { }
 
-        protected override async Task Handle(OsuServerDb database, BinaryReader reader)
+        protected override async Task Handle(OsuServerDb database, Bancho bancho, string osuToken, BinaryReader reader)
         {
-            OnlinePlayer? player = Bancho.GetPlayer(Token);
+            OnlinePlayer? player = bancho.GetPlayer(osuToken);
 
             if (player == null) return;
 
@@ -23,11 +24,12 @@ namespace OsuServer.API.Packets.Client
 
             string content = message.Text.Trim();
 
-            OnlinePlayer? recipient = Bancho.GetPlayerByUsername(message.Recipient);
+            OnlinePlayer? recipient = bancho.GetPlayerByUsername(message.Recipient);
 
             if (recipient == null)
             {
-                player.Connection.AddPendingPacket(new NotificationPacket($"Your message could not sent to {message.Recipient} as the player could not be found.", Token, Bancho));
+                player.Connection.AddPendingPacket(new NotificationPacket($"Your message could not sent to {message.Recipient} " +
+                    $"as the player could not be found."));
                 return;
             }
             
@@ -37,7 +39,8 @@ namespace OsuServer.API.Packets.Client
             if (content.Length > MaxMessageLength)
             {
                 content = content.Substring(0, MaxMessageLength);
-                player.Connection.AddPendingPacket(new NotificationPacket($"Your message was truncated as it exceeded {MaxMessageLength} characters.", Token, Bancho));
+                player.Connection.AddPendingPacket(new NotificationPacket($"Your message was truncated as it exceeded " +
+                    $"{MaxMessageLength} characters."));
             }
 
             // Respect "Block private messages from non-friends" setting
@@ -45,7 +48,7 @@ namespace OsuServer.API.Packets.Client
             {
                 Console.WriteLine($"{message.Sender} tried to message {recipient.Username}, but DMs were blocked from non-friends.");
                 player.Connection.AddPendingPacket(new NotificationPacket($"You cannot message {recipient.Username} because " +
-                    "they are blocking messages from non-friends.", Token, Bancho));
+                    "they are blocking messages from non-friends."));
                 return;
             }
             
@@ -54,7 +57,7 @@ namespace OsuServer.API.Packets.Client
                 Console.WriteLine($"{message.Sender} tried to message {recipient.Username}, but their own DMs were " +
                     $"blocked from non-friends and they don't have {recipient.Username} added..");
                 player.Connection.AddPendingPacket(new NotificationPacket($"You cannot message {recipient.Username} because " +
-                    "you are blocking messages from non-friends and they will not be able to reply to you.", Token, Bancho));
+                    "you are blocking messages from non-friends and they will not be able to reply to you."));
                 return;
             }
 

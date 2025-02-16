@@ -42,10 +42,10 @@ namespace OsuServer
             app.MapGet("/web/bancho_connect.php", (Delegate)s_BanchoEndpoint.HandleBanchoConnect);
 
             // Player avatars (a.ppy.sh/{id})
-            app.MapGet("/{id:int}", (Delegate)s_BanchoEndpoint.HandleProfilePictureRequest);
+            app.MapGet("/{id:int}", s_BanchoEndpoint.HandleProfilePictureRequest);
 
-            // Beatmap thumbnails (b.ppy.sh/thumb/{id})
-            app.MapGet("/thumb/{id}", (Delegate)s_BanchoEndpoint.HandleBeatmapThumbnailRequest);
+            // Beatmap thumbnails (b.ppy.sh/thumb/{filename})
+            app.MapGet("/thumb/{filename}", s_BanchoEndpoint.HandleBeatmapThumbnailRequest);
 
             // Score submission
             app.MapPost("/web/osu-submit-modular-selector.php", (Delegate)s_BanchoEndpoint.HandleScoreSubmission);

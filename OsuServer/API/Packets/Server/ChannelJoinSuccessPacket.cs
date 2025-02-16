@@ -5,7 +5,8 @@ namespace OsuServer.API.Packets.Server
     public class ChannelJoinSuccessPacket : ServerPacket
     {
         string Name { get; set; }
-        public ChannelJoinSuccessPacket(string name, string osuToken, Bancho bancho) : base((int) ServerPacketType.ChannelJoinSuccess, osuToken, bancho) 
+        public ChannelJoinSuccessPacket(string name) 
+            : base((int) ServerPacketType.ChannelJoinSuccess) 
         {
             Name = name;
         }

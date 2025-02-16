@@ -5,7 +5,8 @@ namespace OsuServer.API.Packets.Server
     public class ChannelKickPacket : ServerPacket
     {
         string Name { get; set; }
-        public ChannelKickPacket(string name, string osuToken, Bancho bancho) : base((int) ServerPacketType.ChannelKick, osuToken, bancho) 
+        public ChannelKickPacket(string name) 
+            : base((int) ServerPacketType.ChannelKick) 
         {
             Name = name;
         }

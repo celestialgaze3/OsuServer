@@ -5,7 +5,8 @@ namespace OsuServer.API.Packets.Server
     public class ChannelAutoJoinPacket : ServerPacket
     {
         Channel Channel;
-        public ChannelAutoJoinPacket(Channel channel, string osuToken, Bancho bancho) : base((int) ServerPacketType.ChannelAutoJoin, osuToken, bancho) 
+        public ChannelAutoJoinPacket(Channel channel) 
+            : base((int) ServerPacketType.ChannelAutoJoin) 
         {
             Channel = channel;
         }
