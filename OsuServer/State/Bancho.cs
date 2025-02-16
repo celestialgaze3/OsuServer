@@ -2,6 +2,7 @@
 using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
+using OsuServer.External.OsuV2Api;
 using OsuServer.External.OsuV2Api.Requests;
 using OsuServer.External.OsuV2Api.Responses;
 using OsuServer.Util;
@@ -13,6 +14,7 @@ namespace OsuServer.State
         public string Name { get; set; }
         public BanchoScores Scores { get; private set; }
         public BanchoMatches Matches { get; private set; }
+        public OsuApiClient ApiClient { get; private set; }
 
         // Players/connections
         private Dictionary<string, int> _tokenToPlayerId = [];
@@ -29,11 +31,12 @@ namespace OsuServer.State
         private Dictionary<string, Channel> _nameToChannel = [];
 
 
-        public Bancho(string name)
+        public Bancho(string name, OsuApiClient apiClient)
         {
             Name = name;
             Scores = new BanchoScores(this);
             Matches = new BanchoMatches(this);
+            ApiClient = apiClient;
 
             CreateDefaultChannels();
         }
@@ -131,7 +134,7 @@ namespace OsuServer.State
 
             // Query osu! API for beatmap information
             Console.WriteLine("Beatmap not found in database. Querying osu! API...");
-            BeatmapLookupResponse? response = await Program.ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5, null, beatmapId.ToString()));
+            BeatmapLookupResponse? response = await ApiClient.SendRequest(new BeatmapLookupRequest(beatmapMD5, null, beatmapId.ToString()));
 
             // Unsubmitted beatmaps
             if (response == null)

@@ -5,6 +5,8 @@ namespace OsuServer.External.Database
 {
     public class OsuServerDb : DbInstance
     {
+        private static bool _tablesInitialized = false;
+
         public DbAccountTable Account { get; set; }
         public DbProfileStatsTable ProfileStats { get; set; }
         public DbScoreTable Score { get; set; }
@@ -23,6 +25,27 @@ namespace OsuServer.External.Database
         public override DbTable[] GetTables()
         {
             return [Account, ProfileStats, Score, Beatmap, Friend];
+        }
+
+        public static async Task<OsuServerDb> GetNewConnection()
+        {
+            var connection = new MySqlConnection($"Server={ServerConfiguration.DatabaseServerIP};" +
+                                                 $"User ID={ServerConfiguration.DatabaseUsername};" +
+                                                 $"Password={ServerConfiguration.DatabasePassword};" +
+                                                 $"Database={ServerConfiguration.DatabaseName};" +
+                                                 $"Allow User Variables=True");
+            await connection.OpenAsync();
+
+            OsuServerDb database = new(connection);
+            if (!_tablesInitialized)
+            {
+                Console.WriteLine("Initializing tables...");
+                await database.InitializeTables();
+                Console.WriteLine("Complete!");
+
+                _tablesInitialized = true;
+            }
+            return database;
         }
     }
 }

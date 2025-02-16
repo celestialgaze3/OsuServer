@@ -34,7 +34,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandlePackets(HttpContext context)
         {
-            using OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await OsuServerDb.GetNewConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -145,7 +145,7 @@ namespace OsuServer.API
 
         private async Task<IResult> HandleLogin(HttpContext context)
         {
-            using OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await OsuServerDb.GetNewConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -257,6 +257,11 @@ namespace OsuServer.API
             return await WriteByteResponse(data, response);
         }
 
+        public async Task<IResult> HandleWeb(HttpContext context)
+        {
+            return Results.Ok($"{Bancho.Name} is up and running!");
+        }
+
         public async Task<IResult> HandleBanchoConnect(HttpContext context)
         {
             /* The client sends various information about itself when it
@@ -324,7 +329,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleScoreSubmission(HttpContext context)
         {
-            using OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await OsuServerDb.GetNewConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -485,7 +490,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleAccountRegistration(HttpContext context)
         {
-            using OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await OsuServerDb.GetNewConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -616,7 +621,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleLeaderboardRequest(HttpContext context)
         {
-            using OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await OsuServerDb.GetNewConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
@@ -750,7 +755,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleReplayRequest(HttpContext context)
         {
-            using OsuServerDb database = await Program.GetDbConnection();
+            using OsuServerDb database = await OsuServerDb.GetNewConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
