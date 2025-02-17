@@ -9,19 +9,22 @@ namespace OsuServer
     {
         public static async Task Main(string[] args)
         {
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+
+            var app = builder.Build();
+
             ClientPacketHandler.RegisterPacketTypes();
 
             // Connect to osu! API (used to retrieve beatmap data)
-            Console.WriteLine("Connecting to the osu! API...");
+            app.Logger.LogInformation("Connecting to the osu! API...");
             OsuApiClient ApiClient = new(ServerConfiguration.ClientId, ServerConfiguration.ClientSecret);
             await ApiClient.Start();
-            Console.WriteLine("Complete!");
+            app.Logger.LogInformation("Complete!");
 
             Bancho bancho = new("Bancho", ApiClient);
             BanchoAPI banchoEndpoint = new(bancho);
-
-            var builder = WebApplication.CreateBuilder(args);
-            var app = builder.Build();
 
             // Bancho connections
             app.MapPost("/", (Delegate)banchoEndpoint.HandlePackets);

@@ -32,7 +32,7 @@ namespace OsuServer.API
             return Results.Empty;
         }
 
-        public async Task<IResult> HandlePackets(HttpContext context)
+        public async Task<IResult> HandlePackets(ILogger<BanchoAPI> logger, HttpContext context)
         {
             using OsuServerDb database = await OsuServerDb.GetNewConnection();
             HttpRequest request = context.Request;
@@ -41,7 +41,7 @@ namespace OsuServer.API
             // Get the user's IP
             string remoteIp = GetRequestIP(context);
 
-            Console.WriteLine(" - New bancho request from " + remoteIp + " - ");
+            logger.LogDebug(" - New bancho request from " + remoteIp + " - ");
 
             /* In all incoming Bancho connections, an "osu-token" is present in the
             headers of the request. The one exception to this is when the client is 
@@ -52,7 +52,7 @@ namespace OsuServer.API
             if (!request.Headers.TryGetValue("osu-token", out StringValues osuTokenHeader))
             {
                 // No osu-token, client is attempting to log in
-                return await HandleLogin(context);
+                return await HandleLogin(logger, context);
             } else
             {
                 // osu-token is present
@@ -64,14 +64,14 @@ namespace OsuServer.API
             // Server has restarted and this client is still logged in
             if (player == null)
             {
-                Console.WriteLine("Connection was not set up properly at login, it's likely the server had restarted. Telling client to reconnect.");
+                logger.LogDebug("Connection was not set up properly at login, it's likely the server had restarted. Telling client to reconnect.");
 
                 Connection connection = Bancho.CreateConnection(osuToken);
                 connection.AddPendingPacket(new ReconnectPacket(1));
                 return await WriteByteResponse(connection.FlushPendingPackets(), response);
             }
 
-            Console.WriteLine("Requester is logged in with token " + osuToken);
+            logger.LogDebug("Requester is logged in with token {Token}" + osuToken);
 
             /* Note: The issue with sending pending packets only on a client ping is that the client will not receive 
              * responses to actions immediately. This is not too bad considering the previous behavior on things like the 
@@ -103,7 +103,8 @@ namespace OsuServer.API
             if (pingOnly || isMatchPacket)
             {
                 byte[] pendingPackets = player.Connection.FlushPendingPackets();
-                Console.WriteLine($"Received a ping packet, responding with {pendingPackets.Length} bytes of pending packet data");
+                logger.LogDebug("Received a ping packet, responding with {Length} bytes of pending packet data", 
+                    pendingPackets.Length);
 
                 // Write pending server packets into response body
                 await WriteByteResponse(pendingPackets, response);
@@ -115,7 +116,7 @@ namespace OsuServer.API
 
             if (dbAccount == null)
             {
-                Console.WriteLine("User seems to be signed into an account that does not exist? Telling client to reconnect.");
+                logger.LogDebug("User seems to be signed into an account that does not exist? Telling client to reconnect.");
                 player.Connection.AddPendingPacket(new ReconnectPacket(1));
                 return await WriteByteResponse(player.Connection.FlushPendingPackets(), response);
             }
@@ -143,13 +144,13 @@ namespace OsuServer.API
             return handlers;
         }
 
-        private async Task<IResult> HandleLogin(HttpContext context)
+        private async Task<IResult> HandleLogin(ILogger<BanchoAPI> logger, HttpContext context)
         {
             using OsuServerDb database = await OsuServerDb.GetNewConnection();
             HttpRequest request = context.Request;
             HttpResponse response = context.Response;
 
-            Console.WriteLine("Client is attempting to login.");
+            logger.LogDebug("Client is attempting to login.");
 
             // Read login data
             string body;
@@ -180,6 +181,8 @@ namespace OsuServer.API
             // Ensure account exists and password matches
             if (account == null || !BCrypt.Net.BCrypt.Verify(loginData.Password, account.Password.Value))
             {
+                logger.LogDebug("Invalid login credentials were provided to access the account {Account}. " +
+                    "Denying login request.", account?.Username);
                 response.Headers.Append("cho-token", "incorrect-credentials");
                 Connection failedConnection = Bancho.TokenlessConnection("incorrect-credentials");
                 failedConnection.AddPendingPacket(new UserIdPacket((int)LoginFailureType.AuthenticationFailed));
@@ -193,6 +196,7 @@ namespace OsuServer.API
             {
                 /* Sometimes the client will try to login again before the first login request is fully processed.
                  * We don't need to do anything here. */
+                logger.LogDebug("Disallowing {Username} from logging in as they already have a session active.", account.Username);
                 return Results.Ok();
             }
 
@@ -253,7 +257,6 @@ namespace OsuServer.API
 
             // Flush pending server packets into response body
             byte[] data = connection.FlushPendingPackets();
-            Console.WriteLine("Response data: " + BitConverter.ToString(data));
             return await WriteByteResponse(data, response);
         }
 
