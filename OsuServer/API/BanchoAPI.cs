@@ -778,6 +778,11 @@ namespace OsuServer.API
             return Results.File(score.ReplayData.BlobValue);
         }
 
+        public async Task<IResult> HandleRedirect(HttpContext context)
+        {
+            return Results.Redirect($"https://osu.ppy.sh{context.Request.Path}");
+        }
+
         private string? GetRequestIP(HttpContext context)
         {
             string? remoteIp = null;

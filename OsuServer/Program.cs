@@ -51,6 +51,12 @@ namespace OsuServer
             // Replay retrieving
             app.MapGet("/web/osu-getreplay.php", (Delegate)banchoEndpoint.HandleReplayRequest);
 
+            // Redirect to osu! servers for beatmap requests
+            app.MapGet("/beatmapsets/{id:int}", (Delegate)banchoEndpoint.HandleRedirect);
+            app.MapGet("/beatmaps/{id:int}", (Delegate)banchoEndpoint.HandleRedirect);
+            app.MapGet("/beatmapsets/{id:int}/discussion", (Delegate)banchoEndpoint.HandleRedirect);
+            app.MapGet("/community/forums/topics/{id:int}", (Delegate)banchoEndpoint.HandleRedirect);
+
             app.Run();
         }
 
