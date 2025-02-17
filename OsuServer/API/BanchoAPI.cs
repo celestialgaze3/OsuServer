@@ -41,7 +41,7 @@ namespace OsuServer.API
             // Get the user's IP
             string remoteIp = GetRequestIP(context);
 
-            logger.LogDebug(" - New bancho request from " + remoteIp + " - ");
+            logger.LogDebug("Received new bancho request from {IP}", remoteIp);
 
             /* In all incoming Bancho connections, an "osu-token" is present in the
             headers of the request. The one exception to this is when the client is 
@@ -64,14 +64,15 @@ namespace OsuServer.API
             // Server has restarted and this client is still logged in
             if (player == null)
             {
-                logger.LogDebug("Connection was not set up properly at login, it's likely the server had restarted. Telling client to reconnect.");
+                logger.LogDebug("Connection was not set up properly at login, it's likely the server had restarted. " +
+                    "Telling client to reconnect.");
 
                 Connection connection = Bancho.CreateConnection(osuToken);
                 connection.AddPendingPacket(new ReconnectPacket(1));
                 return await WriteByteResponse(connection.FlushPendingPackets(), response);
             }
 
-            logger.LogDebug("Requester is logged in with token {Token}" + osuToken);
+            logger.LogDebug("Requester is logged in with token {Token} ({Username})", osuToken, player.Username);
 
             /* Note: The issue with sending pending packets only on a client ping is that the client will not receive 
              * responses to actions immediately. This is not too bad considering the previous behavior on things like the 
@@ -254,6 +255,8 @@ namespace OsuServer.API
             // Send the client their own user information
             connection.AddPendingPacket(new UserPresencePacket(player));
             connection.AddPendingPacket(new UserStatsPacket(player));
+
+            logger.LogInformation("{Username} has signed in.", player.Username);
 
             // Flush pending server packets into response body
             byte[] data = connection.FlushPendingPackets();
