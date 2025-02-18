@@ -62,6 +62,22 @@
             }
         }
 
+        public static string BeatmapMirrorApiBaseUrl
+        {
+            get
+            {
+                return Config.GetSection("beatmapMirrorApi").TryGetValue<string>("baseUrl");
+            }
+        }
+
+        public static string BeatmapMirrorApiSearchEndpoint
+        {
+            get
+            {
+                return Config.GetSection("beatmapMirrorApi").TryGetValue<string>("searchEndpoint");
+            }
+        }
+
         private static T TryGetValue<T>(this IConfiguration config, string name)
         {
             bool exists = config.GetSection(name).Value != null;

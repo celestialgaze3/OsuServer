@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-
-namespace OsuServer.External.OsuV2Api
+﻿namespace OsuServer.External.OsuV2Api
 {
     public abstract class OsuApiRequest<TResponse> where TResponse : OsuApiResponse, new()
     {

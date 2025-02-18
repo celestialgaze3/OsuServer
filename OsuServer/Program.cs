@@ -52,10 +52,19 @@ namespace OsuServer
             app.MapGet("/web/osu-getreplay.php", (Delegate)banchoEndpoint.HandleReplayRequest);
 
             // Redirect to osu! servers for beatmap requests
-            app.MapGet("/beatmapsets/{id:int}", (Delegate)banchoEndpoint.HandleRedirect);
-            app.MapGet("/beatmaps/{id:int}", (Delegate)banchoEndpoint.HandleRedirect);
-            app.MapGet("/beatmapsets/{id:int}/discussion", (Delegate)banchoEndpoint.HandleRedirect);
-            app.MapGet("/community/forums/topics/{id:int}", (Delegate)banchoEndpoint.HandleRedirect);
+            app.MapGet("/beatmapsets/{id:int}", (Delegate)banchoEndpoint.HandleOsuRedirect);
+            app.MapGet("/beatmaps/{id:int}", (Delegate)banchoEndpoint.HandleOsuRedirect);
+            app.MapGet("/beatmapsets/{id:int}/discussion", (Delegate)banchoEndpoint.HandleOsuRedirect);
+            app.MapGet("/community/forums/topics/{id:int}", (Delegate)banchoEndpoint.HandleOsuRedirect);
+
+            // Redirect to beatmap mirror for download requests
+            app.MapGet("/d/{beatmapSetId}", (Delegate)banchoEndpoint.HandleDownload);
+
+            // Beatmap search
+            app.MapGet("/web/osu-search.php", (Delegate)banchoEndpoint.HandleSearch);
+
+            // Beatmap audio previews
+            app.MapGet("/preview/{filename}", (Delegate)banchoEndpoint.HandleAudioPreviewRequest);
 
             app.Run();
         }

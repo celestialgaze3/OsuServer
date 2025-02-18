@@ -9,6 +9,7 @@ using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
 using OsuServer.External.Database.Tables;
+using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using OsuServer.State;
 using OsuServer.Util;
@@ -285,40 +286,31 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleProfilePictureRequest(HttpContext context, int id)
         {
-            HttpRequest request = context.Request;
-            HttpResponse response = context.Response;
-
             Console.WriteLine($"Received avatar request for user ID {id} from {GetRequestIP(context)}");
-
-            HttpClient client = new HttpClient();
-            Console.WriteLine($"Downloading data from a.ppy.sh/{id}...");
-            try
-            {
-                byte[] profilePicture = await client.GetByteArrayAsync($"https://a.ppy.sh/{id}");
-                Console.WriteLine($"Sending data in response...");
-                return await WriteByteResponse(profilePicture, response);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Returning 404 Not Found as osu! servers returned the following: {e.Message}");
-                return Results.NotFound();
-            }
+            return await HandleFileDownload(context, "a.ppy.sh", id.ToString());
         }
         public async Task<IResult> HandleBeatmapThumbnailRequest(HttpContext context, string filename)
         {
-            HttpRequest request = context.Request;
-            HttpResponse response = context.Response;
-
             Console.WriteLine($"Received beatmap thumbnail request for thumbnail {filename} from {GetRequestIP(context)}");
+            return await HandleFileDownload(context, "b.ppy.sh/thumb", filename);
+        }
 
+        public async Task<IResult> HandleAudioPreviewRequest(HttpContext context, string filename)
+        {
+            Console.WriteLine($"Received audio request for {filename} from {GetRequestIP(context)}");
+            return await HandleFileDownload(context, "b.ppy.sh/preview", filename);
+        }
+
+        private async Task<IResult> HandleFileDownload(HttpContext context, string url, string filename)
+        {
             HttpClient client = new HttpClient();
-            Console.WriteLine($"Downloading data from b.ppy.sh/thumb/{filename}...");
+            Console.WriteLine($"Downloading data from {url}/{filename}...");
 
             try
             {
-                byte[] thumbnail = await client.GetByteArrayAsync($"https://b.ppy.sh/thumb/{filename}");
+                byte[] thumbnail = await client.GetByteArrayAsync($"https://{url}/{filename}");
                 Console.WriteLine($"Sending data in response...");
-                return await WriteByteResponse(thumbnail, response);
+                return await WriteByteResponse(thumbnail, context.Response);
             }
             catch (Exception e)
             {
@@ -778,9 +770,68 @@ namespace OsuServer.API
             return Results.File(score.ReplayData.BlobValue);
         }
 
-        public async Task<IResult> HandleRedirect(HttpContext context)
+        public async Task<IResult> HandleOsuRedirect(HttpContext context)
         {
             return Results.Redirect($"https://osu.ppy.sh{context.Request.Path}");
+        }
+
+        public async Task<IResult> HandleDownload(HttpContext context, string beatmapSetId)
+        {
+            return Results.Redirect($"https://{ServerConfiguration.BeatmapMirrorApiBaseUrl}/d/{beatmapSetId}");
+        }
+
+        public async Task<IResult> HandleSearch(HttpContext context)
+        {
+            HttpRequest request = context.Request;
+            HttpResponse response = context.Response;
+            Console.WriteLine($" - New search request from {GetRequestIP(context)} -");
+
+            // All parameters of this GET request
+            string username = request.Query["u"].ToString();
+            string passwordMD5 = request.Query["h"].ToString();
+            int status = Int32.Parse(request.Query["r"].ToString());
+            string query = request.Query["q"].ToString();
+            int mode = Int32.Parse(request.Query["m"].ToString());
+            int pageNumber = Int32.Parse(request.Query["p"].ToString());
+
+            // Ensure the player has a session
+            OnlinePlayer? player = Bancho.GetPlayer(username, passwordMD5);
+            if (player == null)
+            {
+                Console.WriteLine("Player with an invalid session tried to search.");
+                return Results.Empty;
+            }
+
+            // Build request uri
+            StringBuilder requestUriBuilder = new();
+            requestUriBuilder.Append($"https://{ServerConfiguration.BeatmapMirrorApiBaseUrl}" +
+                $"{ServerConfiguration.BeatmapMirrorApiSearchEndpoint}?");
+            requestUriBuilder.Append($"query={query}");
+            requestUriBuilder.Append($"&offset={100 * pageNumber}");
+
+            // -1 represents all
+            if (mode != -1)
+                requestUriBuilder.Append($"&mode={mode}");
+
+            // 4 represents all
+            if (status != 4)
+                requestUriBuilder.Append($"&status={RankStatus.FromOsuDirect(status).ValueInt}");
+
+            // Make a request to the beatmap mirror
+            using HttpClient client = new();
+            HttpRequestMessage apiRequest = new()
+            {
+                RequestUri = new Uri(requestUriBuilder.ToString()),
+                Method = HttpMethod.Get
+            };
+            apiRequest.Headers.Add("User-Agent", request.Headers.UserAgent.ToString());
+
+            Console.WriteLine($"Making a request to {apiRequest.RequestUri.ToString()}...");
+            HttpResponseMessage apiResponse = await client.SendAsync(apiRequest);
+            string responseString = await apiResponse.Content.ReadAsStringAsync();
+            Console.WriteLine($"Completed search request.");
+
+            return await WriteByteResponse(Encoding.UTF8.GetBytes(responseString), response);
         }
 
         private string? GetRequestIP(HttpContext context)

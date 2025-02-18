@@ -2,13 +2,13 @@
 {
     public class RankStatus
     {
-        public static RankStatus Graveyard => new RankStatus(-2, "graveyard");
-        public static RankStatus Wip => new RankStatus(-1, "wip");
-        public static RankStatus Pending => new RankStatus(0, "pending");
-        public static RankStatus Ranked => new RankStatus(1, "ranked");
-        public static RankStatus Approved => new RankStatus(2, "approved");
-        public static RankStatus Qualified => new RankStatus(3, "qualified");
-        public static RankStatus Loved => new RankStatus(4, "loved");
+        public static RankStatus Graveyard => new(-2, "graveyard");
+        public static RankStatus Wip => new(-1, "wip");
+        public static RankStatus Pending => new(0, "pending");
+        public static RankStatus Ranked => new(1, "ranked");
+        public static RankStatus Approved => new(2, "approved");
+        public static RankStatus Qualified => new(3, "qualified");
+        public static RankStatus Loved => new(4, "loved");
 
         public static RankStatus[] Values = { Graveyard, Wip, Pending, Ranked, Approved, Qualified, Loved };
 
@@ -61,6 +61,26 @@
 
             throw new ArgumentException($"Argument {integer} does not match a value in RankStatus");
         }
+
+        public static RankStatus FromOsuDirect(int integer)
+        {
+            if (integer == 0)
+                return RankStatus.Ranked;
+            if (integer == 2)
+                return RankStatus.Pending;
+            if (integer == 3)
+                return RankStatus.Qualified;
+            // 4 is all
+            if (integer == 5)
+                return RankStatus.Graveyard;
+            if (integer == 7)
+                return RankStatus.Ranked; // played before
+            if (integer == 8)
+                return RankStatus.Loved;
+
+            throw new ArgumentException($"Argument {integer} does not match a value provided by osu!direct");
+        }
+
 
         public static RankStatus FromString(string str)
         {
