@@ -23,23 +23,33 @@ namespace OsuServer.External.OsuV2Api
             _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
+        private async Task RenewToken()
+        {
+            Console.WriteLine("Renewing osu!api token...");
+            ClientCredentialsGrantRequest request = new(Id, Secret);
+            ClientCredentialsGrantResponse? response = await request.Send(_client);
+            if (response == null)
+                throw new InvalidOperationException("Unable to access osu! API; client credentials grant returned null");
+            AccessToken = response.Token;
+        }
+
         /// <summary>
         /// Starts this client by requesting a client credentials grant.
         /// </summary>
         public async Task Start()
         {
-            ClientCredentialsGrantRequest request = new(Id, Secret);
-            ClientCredentialsGrantResponse? response = await request.Send(_client);
-            if (response == null)
-                throw new InvalidOperationException("Unable to access osu! API; client credentials grant returned null");
-
-            AccessToken = response.Token;
+            await RenewToken();
         }
 
         public async Task<TResponse?> SendRequest<TResponse>(OsuApiRequest<TResponse> request) where TResponse : OsuApiResponse, new()
         {
+            // Ensure the client has been started before usage
             if (AccessToken == null)
                 throw new InvalidOperationException("Access token must be granted with Start() before using this client");
+            
+            // Renew the access token if it has expired
+            if (AccessToken.Expired)
+                await RenewToken();
 
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(AccessToken.Type, AccessToken.Value);
 
