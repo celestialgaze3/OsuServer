@@ -11,7 +11,7 @@ namespace OsuServer.External.Database.Tables
         beatmapset_id INT UNSIGNED NOT NULL,
         difficulty_rating FLOAT NOT NULL,
         mode TINYINT UNSIGNED NOT NULL DEFAULT 0,
-        ranked_status TINYINT UNSIGNED NOT NULL DEFAULT 0,
+        ranked_status TINYINT NOT NULL DEFAULT 0,
         total_length INT NOT NULL DEFAULT 0,
         user_id INT NOT NULL DEFAULT 0,
         version VARCHAR(80) NOT NULL,
