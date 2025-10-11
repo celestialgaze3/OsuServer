@@ -6,7 +6,7 @@ namespace OsuServer.External.Database.Tables
 {
     public class DbBeatmapTable(DbInstance database) : DbTable<DbBeatmap>(
         database,
-        "Beatmap",
+        "beatmap",
         @"id INT UNSIGNED NOT NULL,
         beatmapset_id INT UNSIGNED NOT NULL,
         difficulty_rating FLOAT NOT NULL,

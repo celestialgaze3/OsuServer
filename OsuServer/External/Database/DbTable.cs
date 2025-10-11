@@ -8,6 +8,7 @@ namespace OsuServer.External.Database
         protected DbInstance _database;
         protected string _insertionReturnColumns;
         public string Name { get; private set; }
+        public bool Exists { get; set; } = false;
 
         public DbTable(DbInstance database, string name, string schema, string insertionReturnColumns = "")
         {
@@ -23,6 +24,9 @@ namespace OsuServer.External.Database
         /// <returns>Whether or not the table exists</returns>
         public async Task<bool> CheckExistsAsync()
         {
+            if (Exists) 
+                return true;
+
             await _database.EnsureConnectionOpen();
 
             using var command = new MySqlCommand("SELECT count(*) " +
@@ -34,6 +38,7 @@ namespace OsuServer.External.Database
             long? count = (long?)await command.ExecuteScalarAsync();
             bool tableExisted = count != null && count > 0;
 
+            Exists = tableExisted;
             return tableExisted;
         }
 
@@ -43,6 +48,9 @@ namespace OsuServer.External.Database
         /// <returns>A task representing the asynchronous operation</returns>
         public virtual async Task<int> CreateTableAsync()
         {
+            if (Exists)
+                return 0;
+
             await _database.EnsureConnectionOpen();
 
             using var command = new MySqlCommand($"CREATE TABLE IF NOT EXISTS {Name} ({_schema});", _database.MySqlConnection);

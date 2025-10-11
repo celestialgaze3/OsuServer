@@ -6,7 +6,7 @@ namespace OsuServer.External.Database.Tables
 {
     public class DbProfileStatsTable(DbInstance database) : DbTable<DbProfileStats>(
         database,
-        "ProfileStats",
+        "profilestats",
         @"account_id INT UNSIGNED NOT NULL,
         gamemode TINYINT UNSIGNED NOT NULL DEFAULT 0,
         total_score BIGINT NOT NULL DEFAULT 0,

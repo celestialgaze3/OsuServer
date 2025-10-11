@@ -5,7 +5,7 @@ namespace OsuServer.External.Database.Tables
 {
     public class DbAccountTable(DbInstance database) : DbTable<DbAccount, int>(
         database,
-        "Account",
+        "account",
         @"id INT UNSIGNED AUTO_INCREMENT,
         username VARCHAR(15) NOT NULL UNIQUE,
         email VARCHAR(50) NOT NULL UNIQUE,

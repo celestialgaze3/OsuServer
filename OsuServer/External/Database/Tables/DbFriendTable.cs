@@ -5,7 +5,7 @@ namespace OsuServer.External.Database.Tables
 {
     public class DbFriendTable(DbInstance database) : DbTable<DbFriend>(
         database,
-        "Friend",
+        "friend",
         @"id INT UNSIGNED NOT NULL,
         friend_id INT UNSIGNED NOT NULL,
 

@@ -5,7 +5,7 @@ namespace OsuServer.External.Database.Tables
 {
     public class DbScoreTable(DbInstance database) : DbTable<DbScore, int>(
         database,
-        "Score",
+        "score",
         @"id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         account_id INT UNSIGNED NOT NULL,
         beatmap_id INT UNSIGNED NOT NULL,

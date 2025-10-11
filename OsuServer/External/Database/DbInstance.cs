@@ -1,4 +1,5 @@
 ﻿using MySqlConnector;
+using System.Data;
 
 namespace OsuServer.External.Database
 {
@@ -88,6 +89,18 @@ namespace OsuServer.External.Database
         /// <returns></returns>
         public async Task InitializeTables()
         {
+            // Mark tables that don't have to be created
+            DataTable tables = MySqlConnection.GetSchema("tables");
+            foreach (DataRow row in tables.Rows)
+            {
+                foreach(var table in GetTables())
+                {
+                    if (table.Name.Equals(row["TABLE_NAME"]))
+                        table.Exists = true;
+                }
+            }
+
+            // Create all tables that don't exist
             foreach (var table in GetTables())
             {
                 await table.CreateTableAsync();
