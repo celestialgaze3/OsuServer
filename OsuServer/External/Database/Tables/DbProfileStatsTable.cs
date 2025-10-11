@@ -18,7 +18,7 @@ namespace OsuServer.External.Database.Tables
         max_combo INT NOT NULL DEFAULT 0,
 
         PRIMARY KEY(account_id, gamemode),
-        CONSTRAINT FK_profile_stats_account FOREIGN KEY (account_id) REFERENCES Account(id)",
+        CONSTRAINT FK_profile_stats_account FOREIGN KEY (account_id) REFERENCES account(id)",
         "account_id")
     {
 

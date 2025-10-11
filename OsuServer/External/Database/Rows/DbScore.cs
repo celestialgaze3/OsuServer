@@ -1,7 +1,6 @@
 ﻿using OsuServer.Objects;
 using OsuServer.State;
 using OsuServer.Util;
-using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace OsuServer.External.Database.Rows
 {
@@ -242,13 +241,13 @@ namespace OsuServer.External.Database.Rows
         {
             return await database.Score.FetchManyAsync(
                 new DbClause(
-                    "INNER JOIN Friend ON",
-                    "Friend.id = @self_id",
+                    "INNER JOIN friend ON",
+                    "friend.id = @self_id",
                     new() { ["self_id"] = selfId }
                 ),
                 new DbClause(
                     "WHERE",
-                    "beatmap_id = @beatmap_id AND Friend.friend_id = Score.account_id AND is_best_score = 1 " +
+                    "beatmap_id = @beatmap_id AND friend.friend_id = score.account_id AND is_best_score = 1 " +
                     "AND gamemode = @gamemode",
                     new()
                     {
@@ -298,7 +297,7 @@ namespace OsuServer.External.Database.Rows
             return await database.Score.FetchManyAsync(
                 new DbClause(
                     "INNER JOIN",
-                    "Account ON Account.id = account_id"
+                    "account ON account.id = account_id"
                 ),
                 new DbClause(
                     "WHERE",
@@ -340,13 +339,13 @@ namespace OsuServer.External.Database.Rows
         {
             return await database.Score.GetRowCountAsync(
                  new DbClause(
-                    "INNER JOIN Friend ON",
-                    "Friend.id = @self_id",
+                    "INNER JOIN friend ON",
+                    "friend.id = @self_id",
                     new() { ["self_id"] = selfId }
                 ),
                 new DbClause(
                     "WHERE",
-                    "beatmap_id = @beatmap_id AND Friend.friend_id = Score.account_id AND is_best_score = 1 AND gamemode = @gamemode",
+                    "beatmap_id = @beatmap_id AND friend.friend_id = score.account_id AND is_best_score = 1 AND gamemode = @gamemode",
                     new()
                     {
                         ["beatmap_id"] = beatmapId,
@@ -377,7 +376,7 @@ namespace OsuServer.External.Database.Rows
             return await database.Score.GetRowCountAsync(
                 new DbClause(
                     "INNER JOIN",
-                    "Account ON Account.id = account_id"
+                    "account ON account.id = account_id"
                 ),
                 new DbClause(
                     "WHERE",
@@ -457,9 +456,9 @@ namespace OsuServer.External.Database.Rows
                 rank = await database.Score.GetRankAsync(
                     score,
                     "total_score",
-                    $"beatmap_id = {beatmapId} AND ((Friend.friend_id = Score.account_id AND is_best_score = 1) OR Score.id={score.Id.Value}) " +
+                    $"beatmap_id = {beatmapId} AND ((friend.friend_id = score.account_id AND is_best_score = 1) OR score.id={score.Id.Value}) " +
                     $"AND gamemode = {(int)gameMode}",
-                    $"INNER JOIN Friend ON Friend.id = {selfId}"
+                    $"INNER JOIN friend ON friend.id = {selfId}"
                 );
             }
 
@@ -475,7 +474,7 @@ namespace OsuServer.External.Database.Rows
                 rank = await database.Score.GetRankAsync(
                     score,
                     "total_score",
-                    $"beatmap_id = {beatmapId} AND mods = {mods.IntValue} AND (is_best_modded_score = 1 OR Score.id={score.Id.Value}) " +
+                    $"beatmap_id = {beatmapId} AND mods = {mods.IntValue} AND (is_best_modded_score = 1 OR score.id={score.Id.Value}) " +
                     $"AND gamemode = {(int)gameMode}"
                 );
             }
@@ -493,8 +492,8 @@ namespace OsuServer.External.Database.Rows
                     score,
                     "total_score",
                     $"beatmap_id = {beatmapId} AND country_code_num = {(int)countryCode} AND " +
-                    $"(is_best_score = 1 OR Score.id={score.Id.Value}) AND gamemode = {(int)gameMode}",
-                    $"INNER JOIN Account ON Account.id = account_id"
+                    $"(is_best_score = 1 OR score.id={score.Id.Value}) AND gamemode = {(int)gameMode}",
+                    $"INNER JOIN account ON account.id = account_id"
                 );
             }
 

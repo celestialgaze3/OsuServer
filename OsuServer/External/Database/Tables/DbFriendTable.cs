@@ -10,8 +10,8 @@ namespace OsuServer.External.Database.Tables
         friend_id INT UNSIGNED NOT NULL,
 
         PRIMARY KEY(id, friend_id),
-        CONSTRAINT FK_friend_adder FOREIGN KEY (id) REFERENCES Account(id),
-        CONSTRAINT FK_friend_addee FOREIGN KEY (friend_id) REFERENCES Account(id)",
+        CONSTRAINT FK_friend_adder FOREIGN KEY (id) REFERENCES account(id),
+        CONSTRAINT FK_friend_addee FOREIGN KEY (friend_id) REFERENCES account(id)",
         "id")
     {
         protected override DbFriend InterpretLatestRecord(MySqlDataReader reader)

@@ -31,7 +31,7 @@ namespace OsuServer.External.Database.Tables
         replay_data MEDIUMBLOB,
 
         PRIMARY KEY(id),
-        CONSTRAINT FK_score_account FOREIGN KEY (account_id) REFERENCES Account(id)",
+        CONSTRAINT FK_score_account FOREIGN KEY (account_id) REFERENCES account(id)",
         "id")
     {
 
