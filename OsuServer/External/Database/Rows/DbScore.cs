@@ -301,7 +301,7 @@ namespace OsuServer.External.Database.Rows
                 ),
                 new DbClause(
                     "WHERE",
-                    "beatmap_id = @beatmap_id AND country_code_num = @country_code_num AND gamemode = @gamemode",
+                    "beatmap_id = @beatmap_id AND is_best_score = 1 AND country_code_num = @country_code_num AND gamemode = @gamemode",
                     new()
                     {
                         ["beatmap_id"] = beatmapId,
