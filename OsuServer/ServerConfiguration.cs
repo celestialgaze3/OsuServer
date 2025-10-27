@@ -40,6 +40,14 @@
             }
         }
 
+        public static string StorageReplayFilePath
+        {
+            get
+            {
+                return Config.GetSection("storage").TryGetValue<string>("replayFilePath");
+            }
+        }
+
         public static string Domain
         {
             get

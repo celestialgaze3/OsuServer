@@ -1,5 +1,6 @@
 ﻿using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
+using OsuServer.External.Filesystem;
 using OsuServer.Objects;
 
 namespace OsuServer.State
@@ -53,8 +54,11 @@ namespace OsuServer.State
             _idToChecksum.Add(assignedScoreId, checksum);
             _checksumToId.Add(checksum, assignedScoreId);
 
-            // Store the replay file
-
+            // Store the replay file if one was sent
+            if (replayBytes != null)
+            {
+                await ReplayRepository.Instance.Write(assignedScoreId, replayBytes);
+            }
 
             // Update the player's state based on this score
             await player.UpdateWithScore(database, submittedScore,
