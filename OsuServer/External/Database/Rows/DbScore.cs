@@ -30,12 +30,10 @@ namespace OsuServer.External.Database.Rows
         public DbColumn<bool> IsBestModdedScore { get; }
         public DbColumn<long> SubmittedTime { get; }
         public DbColumn<byte[]> Checksum { get; }
-        public DbBlobColumn ReplayData { get; }
 
         public DbScore(uint id, uint accountId, uint beatmapId, int perfects, int goods, int bads, int gekis, int katus, int misses,
             int totalScore, int maxCombo, bool isPerfectCombo, int mods, bool isPass, byte gameMode, double pp, bool isBestPP,
-            bool isBestAccuracy, bool isBestCombo, bool isBestScore, bool isBestModdedScore, long timestamp, byte[] checksum,
-            byte[]? replayData = null)
+            bool isBestAccuracy, bool isBestCombo, bool isBestScore, bool isBestModdedScore, long timestamp, byte[] checksum)
         {
             Id = new("id", id, false);
             AccountId = new("account_id", accountId);
@@ -60,7 +58,6 @@ namespace OsuServer.External.Database.Rows
             IsBestModdedScore = new("is_best_modded_score", isBestModdedScore);
             SubmittedTime = new("submitted_time", timestamp);
             Checksum = new("checksum", checksum);
-            ReplayData = new("replay_data", replayData);
         }
 
         protected DbScore(uint id, Score score, string checksum, bool isBestPP, bool isBestAccuracy, bool isBestCombo, bool isBestScore,
@@ -89,7 +86,6 @@ namespace OsuServer.External.Database.Rows
             IsBestModdedScore = new("is_best_modded_score", isBestModdedScore);
             SubmittedTime = new("submitted_time", score.Timestamp);
             Checksum = new("checksum", Convert.FromHexString(checksum));
-            ReplayData = new("replay_data", replayData);
         }
 
         public async Task<Score> GetScore(OsuServerDb database, Bancho bancho)
@@ -515,7 +511,7 @@ namespace OsuServer.External.Database.Rows
             return [Id, AccountId, BeatmapId, Perfects, Goods, Bads, Gekis, Katus, Misses, 
                 TotalScore, MaxCombo, IsPerfectCombo, Mods, IsPass, GameMode, PP, IsBestPP,
                 IsBestAccuracy, IsBestCombo, IsBestScore, IsBestModdedScore, SubmittedTime,
-                Checksum, ReplayData];
+                Checksum];
         }
 
         public override DbColumn[] GetIdentifyingColumns()

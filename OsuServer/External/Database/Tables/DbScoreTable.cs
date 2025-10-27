@@ -29,7 +29,6 @@ namespace OsuServer.External.Database.Tables
         is_best_modded_score BOOLEAN NOT NULL DEFAULT 0,
         submitted_time BIGINT NOT NULL DEFAULT 0,
         checksum BINARY(16) UNIQUE NOT NULL,
-        replay_data MEDIUMBLOB,
 
         PRIMARY KEY(id),
         CONSTRAINT FK_score_account FOREIGN KEY (account_id) REFERENCES account(id)",
@@ -65,8 +64,7 @@ namespace OsuServer.External.Database.Tables
                 reader.GetBoolean(19),
                 reader.GetBoolean(20),
                 reader.GetInt64(21),
-                checksumBytes,
-                DbBlobColumn.Deserialize(reader, 22)
+                checksumBytes
             );
         }
 

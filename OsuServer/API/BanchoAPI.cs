@@ -743,7 +743,7 @@ namespace OsuServer.API
             return $"{dbScore.Id.Value}|{await score.Player.GetUsername(database)}|{score.TotalScore}|{score.MaxCombo}|" +
                 $"{score.Bads}|{score.Goods}|{score.Perfects}|{score.Misses}|{score.Katus}|{score.Gekis}|" +
                 $"{score.PerfectCombo}|{score.Mods.IntValue}|{score.Player.Id}|{rank}|{score.Timestamp / 1000}|" +
-                (dbScore.ReplayData.ValueIsNull ? 0 : 1);
+                (ReplayRepository.Instance.Exists((int) dbScore.Id.Value) ? 1 : 0);
         }
 
         public async Task<IResult> HandleReplayRequest(HttpContext context)
