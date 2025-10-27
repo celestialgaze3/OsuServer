@@ -28,6 +28,7 @@ namespace OsuServer.External.Database.Tables
         is_best_score BOOLEAN NOT NULL DEFAULT 0,
         is_best_modded_score BOOLEAN NOT NULL DEFAULT 0,
         submitted_time BIGINT NOT NULL DEFAULT 0,
+        checksum BINARY(16) UNIQUE NOT NULL,
         replay_data MEDIUMBLOB,
 
         PRIMARY KEY(id),
@@ -37,6 +38,10 @@ namespace OsuServer.External.Database.Tables
 
         protected override DbScore InterpretLatestRecord(MySqlDataReader reader)
         {
+            byte[] checksumBytes = new byte[16];
+            reader.GetBytes(22, 0, checksumBytes, 0, 16);
+            //string scoreChecksum = Convert.ToHexString(scoreChecksumBytes);
+
             return new DbScore(
                 reader.GetUInt32(0),
                 reader.GetUInt32(1),
@@ -60,6 +65,7 @@ namespace OsuServer.External.Database.Tables
                 reader.GetBoolean(19),
                 reader.GetBoolean(20),
                 reader.GetInt64(21),
+                checksumBytes,
                 DbBlobColumn.Deserialize(reader, 22)
             );
         }

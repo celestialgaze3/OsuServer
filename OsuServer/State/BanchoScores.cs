@@ -23,20 +23,21 @@ namespace OsuServer.State
         /// <param name="database">The database instance</param>
         /// <param name="player">The player who set the score</param>
         /// <param name="score">The score itself</param>
-        /// <param name="scoreChecksum">The checksum submitted by the client</param>
+        /// <param name="checksum">The checksum submitted by the client</param>
         /// <returns>A tuple with three items: the first one is the SubmittedScore, the second is the DbScore,
         /// and the third is an array of the old best scores</returns>
         public async Task<(SubmittedScore, DbScore?, DbScore?[])> Submit(OsuServerDb database, OnlinePlayer player, 
-            Score score, string scoreChecksum, byte[]? replayBytes)
+            Score score, string checksum, byte[]? replayBytes)
         {
-            if (IsSubmitted(scoreChecksum))
+            if (IsSubmitted(checksum))
             {
-                SubmittedScore foundScore = _idToScore[_checksumToId[scoreChecksum]];
+                SubmittedScore foundScore = _idToScore[_checksumToId[checksum]];
                 return (foundScore, null, []);
             }
 
+            // Send the score to be saved in the database
             await database.StartTransaction();
-            (DbScore, DbScore?[]) ScoreInfo = await DbScore.PrepareInsertion(database, score, replayBytes);
+            (DbScore, DbScore?[]) ScoreInfo = await DbScore.PrepareInsertion(database, score, checksum, replayBytes);
             DbScore dbScore = ScoreInfo.Item1;
             DbScore?[] previousBests = ScoreInfo.Item2;
 
@@ -49,8 +50,11 @@ namespace OsuServer.State
 
             SubmittedScore submittedScore = new(score, assignedScoreId);
             _idToScore.Add(assignedScoreId, submittedScore);
-            _idToChecksum.Add(assignedScoreId, scoreChecksum);
-            _checksumToId.Add(scoreChecksum, assignedScoreId);
+            _idToChecksum.Add(assignedScoreId, checksum);
+            _checksumToId.Add(checksum, assignedScoreId);
+
+            // Store the replay file
+
 
             // Update the player's state based on this score
             await player.UpdateWithScore(database, submittedScore,
