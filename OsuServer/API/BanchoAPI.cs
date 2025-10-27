@@ -9,6 +9,7 @@ using OsuServer.API.Packets.Server;
 using OsuServer.External.Database;
 using OsuServer.External.Database.Rows;
 using OsuServer.External.Database.Tables;
+using OsuServer.External.Filesystem;
 using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
 using OsuServer.State;
@@ -742,7 +743,7 @@ namespace OsuServer.API
             return $"{dbScore.Id.Value}|{await score.Player.GetUsername(database)}|{score.TotalScore}|{score.MaxCombo}|" +
                 $"{score.Bads}|{score.Goods}|{score.Perfects}|{score.Misses}|{score.Katus}|{score.Gekis}|" +
                 $"{score.PerfectCombo}|{score.Mods.IntValue}|{score.Player.Id}|{rank}|{score.Timestamp / 1000}|" +
-                (dbScore.ReplayData.ValueIsNull ? 0 : 1);
+                (ReplayRepository.Instance.Exists((int) dbScore.Id.Value) ? 1 : 0);
         }
 
         public async Task<IResult> HandleReplayRequest(HttpContext context)
@@ -762,12 +763,12 @@ namespace OsuServer.API
             );
 
             // Replay not found
-            if (score == null || score.ReplayData.ValueIsNull)
+            if (score == null || !ReplayRepository.Instance.Exists(scoreId))
             {
                 return Results.NotFound();
             }
 
-            return Results.File(score.ReplayData.BlobValue);
+            return Results.File(await ReplayRepository.Instance.Read(scoreId));
         }
 
         public async Task<IResult> HandleOsuRedirect(HttpContext context)

@@ -1,5 +1,6 @@
 using OsuServer.API;
 using OsuServer.API.Packets;
+using OsuServer.External.Filesystem;
 using OsuServer.External.OsuV2Api;
 using OsuServer.State;
 
@@ -17,6 +18,10 @@ namespace OsuServer
             await ApiClient.Start();
             Console.WriteLine("Complete!");
 
+            // Initialize filesystem
+            ReplayRepository.Initialize(ServerConfiguration.StorageReplayFilePath);
+
+            // Start the Bancho instance
             Bancho bancho = new("Bancho", ApiClient);
             BanchoAPI banchoEndpoint = new(bancho);
 
