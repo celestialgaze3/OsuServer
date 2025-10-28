@@ -47,7 +47,7 @@ namespace OsuServer.External.Database.Tables
                     (int)reader.GetUInt32(1),
                     reader.GetFloat(2),
                     Ruleset.FromInt(reader.GetByte(3)),
-                    RankStatus.FromInt(reader.GetByte(4)),
+                    RankStatus.FromInt(reader.GetSByte(4)),
                     reader.GetInt32(5),
                     reader.GetInt32(6),
                     reader.GetString(7),
