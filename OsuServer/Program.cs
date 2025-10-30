@@ -20,6 +20,7 @@ namespace OsuServer
 
             // Initialize filesystem
             ReplayRepository.Initialize(ServerConfiguration.StorageReplayFilePath);
+            BeatmapRepository.Initialize(ServerConfiguration.StorageBeatmapFilePath);
 
             // Start the Bancho instance
             Bancho bancho = new("Bancho", ApiClient);

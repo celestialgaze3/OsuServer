@@ -90,7 +90,7 @@ namespace OsuServer.State
 
                 if (!score.Passed || !score.Beatmap.ShouldAwardStatIncrease()) continue;
 
-                double scorePP = score.Beatmap.CalculatePerformancePoints(score);
+                double scorePP = score.PerformancePoints;
                 totalPP += scorePP * Math.Pow(0.95f, totalPasses);
                 totalPasses++;
             }
@@ -152,8 +152,8 @@ namespace OsuServer.State
             }
 
             // If a current best pp score exists, add the new score only if it is better
-            double currentBestPPValue = score.Beatmap.CalculatePerformancePoints(currentBestPP);
-            double newPPValue = score.Beatmap.CalculatePerformancePoints(score);
+            double currentBestPPValue = currentBestPP.PerformancePoints;
+            double newPPValue = score.PerformancePoints;
             if (newPPValue >= currentBestPPValue)
             {
                 _scoreIds[score.Beatmap.Info.Id] = score.Id;
@@ -176,8 +176,7 @@ namespace OsuServer.State
                 if (secondScore == null)
                     return -1;
 
-                return secondScore.Beatmap.CalculatePerformancePoints(secondScore)
-                    .CompareTo(firstScore.Beatmap.CalculatePerformancePoints(firstScore));
+                return secondScore.PerformancePoints.CompareTo(firstScore.PerformancePoints);
             }));
         }
 

@@ -60,7 +60,7 @@ namespace OsuServer.External.Database.Rows
             Checksum = new("checksum", checksum);
         }
 
-        protected DbScore(uint id, Score score, string checksum, bool isBestPP, bool isBestAccuracy, bool isBestCombo, bool isBestScore,
+        protected DbScore(uint id, Score score, string checksum, double pp, bool isBestPP, bool isBestAccuracy, bool isBestCombo, bool isBestScore,
             bool isBestModdedScore, byte[]? replayData = null)
         {
             Id = new("id", id, false);
@@ -78,7 +78,7 @@ namespace OsuServer.External.Database.Rows
             Mods = new("mods", score.Mods.IntValue);
             IsPass = new("is_pass", score.Passed);
             GameMode = new("gamemode", (byte) score.GameMode);
-            PP = new("pp", score.Beatmap.CalculatePerformancePoints(score));
+            PP = new("pp", pp);
             IsBestPP = new("is_best_pp", isBestPP);
             IsBestAccuracy = new("is_best_accuracy", isBestAccuracy);
             IsBestCombo = new("is_best_combo", isBestCombo);
@@ -108,6 +108,9 @@ namespace OsuServer.External.Database.Rows
             /* We want to find out if this play has bested previous plays in various stats. 
              * Let's make some queries to find out. */
 
+            // First, we need to calculate this play's pp
+            double pp = await score.Beatmap.CalculatePerformancePoints(score);
+
             // Track this score's insertion data
             bool isBestPP = false;
             bool isBestAccuracy = false;
@@ -135,7 +138,7 @@ namespace OsuServer.External.Database.Rows
             {
                 // Ready to insert the new score!
                 return (
-                    new DbScore(0, score, checksum, false, false, false, false, false),
+                    new DbScore(0, score, checksum, pp, false, false, false, false, false),
                     [bestPP, bestAccuracy, bestCombo, bestScore, bestModdedScore]
                 );
             }
@@ -143,7 +146,7 @@ namespace OsuServer.External.Database.Rows
             // Overwrite best pp score if this score is better
             if (bestPP != null)
             {
-                if (score.Beatmap.CalculatePerformancePoints(score) > bestPP.PP.Value)
+                if (pp > bestPP.PP.Value)
                 {
                     isBestPP = true;
                     bestPP.IsBestPP.Value = false;
@@ -205,7 +208,7 @@ namespace OsuServer.External.Database.Rows
 
             // Ready to insert the new score!
             return (
-                new DbScore(0, score, checksum, isBestPP, isBestAccuracy, isBestCombo, isBestScore, isBestModdedScore, replayBytes),
+                new DbScore(0, score, checksum, pp, isBestPP, isBestAccuracy, isBestCombo, isBestScore, isBestModdedScore, replayBytes),
                 [bestPP, bestAccuracy, bestCombo, bestScore, bestModdedScore]
             );
         }

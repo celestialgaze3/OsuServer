@@ -49,7 +49,7 @@ namespace OsuServer.State
 
             dbScore.Id.Value = (uint) assignedScoreId;
 
-            SubmittedScore submittedScore = new(score, assignedScoreId);
+            SubmittedScore submittedScore = new(score, assignedScoreId, await score.Beatmap.CalculatePerformancePoints(score));
             _idToScore.Add(assignedScoreId, submittedScore);
             _idToChecksum.Add(assignedScoreId, checksum);
             _checksumToId.Add(checksum, assignedScoreId);
@@ -88,7 +88,8 @@ namespace OsuServer.State
             {
                 Score score = await Score.Get(database, _bancho, dbScore);
                 int id = (int) dbScore.Id.Value;
-                SubmittedScore submittedScore = new(score, id);
+                double pp = Math.Max(dbScore.PP.Value, 0); // -1 is an internal value for 'unprocessed'
+                SubmittedScore submittedScore = new(score, id, pp);
 
                 _idToScore[id] = submittedScore;
                 player.Scores[score.GameMode].Add(submittedScore);
