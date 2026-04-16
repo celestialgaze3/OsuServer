@@ -1,5 +1,8 @@
-﻿using OsuServer.External.OsuV2Api;
+﻿using Org.BouncyCastle.Asn1.Ocsp;
+using OsuServer.External.Filesystem;
+using OsuServer.External.OsuV2Api;
 using OsuServer.Objects;
+using System.Text;
 
 namespace OsuServer.State
 {
@@ -15,7 +18,8 @@ namespace OsuServer.State
             _bancho = bancho;
             Info = beatmap;
         }
-        public double CalculatePerformancePoints(Score score)
+
+        public async Task<double> CalculatePerformancePoints(Score score)
         {
             double pp;
             if (_ppCache.TryGetValue(score, out pp))
@@ -23,8 +27,46 @@ namespace OsuServer.State
                 return pp;
             }
 
+            // Get .osu data, retrieve if needed
+            string beatmapData;
+            if (BeatmapRepository.Instance.Exists(Info.Id))
+            {
+                beatmapData = await BeatmapRepository.Instance.Read(Info.Id);
+            } 
+            else
+            {
+                StringBuilder requestUriBuilder = new();
+                requestUriBuilder.Append($"https://{ServerConfiguration.BeatmapMirrorApiBaseUrl}" +
+                    $"{ServerConfiguration.BeatmapMirrorOsuFileDownloadEndpoint}/{Info.Id}");
+
+                using HttpClient client = new();
+                HttpRequestMessage apiRequest = new()
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new(requestUriBuilder.ToString())
+                };
+                apiRequest.Headers.Add("User-Agent", "osu!");
+
+                Console.WriteLine($"Making a request to {apiRequest.RequestUri.ToString()}...");
+                HttpResponseMessage apiResponse = await client.SendAsync(apiRequest);
+                string beatmapString = await apiResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"Completed search request.");
+
+                if (!string.IsNullOrEmpty(beatmapString) && apiResponse.IsSuccessStatusCode)
+                {
+                    await BeatmapRepository.Instance.Write(Info.Id, beatmapString); 
+                } else
+                {
+                    return -1;
+                }
+
+                beatmapData = beatmapString;
+            }
+
             // TODO: proper performance points calculation
-            pp = score.Perfects;
+            // Calculate the number of objects and subtract # of bad judgements
+            string[] objects = beatmapData.Split("[HitObjects]")[1].Split("[")[0].Split("\n");
+            pp = objects.Length - (score.Goods + score.Bads + score.Misses);
 
             return pp;
         }

@@ -25,7 +25,7 @@ namespace OsuServer.Objects
         /// <param name="score">The score to copy stats from</param>
         public ScoreStats(SubmittedScore score)
         {
-            PerformancePoints = score.Beatmap.CalculatePerformancePoints(score);
+            PerformancePoints = score.PerformancePoints;
             TotalScore = score.TotalScore;
             Combo = score.MaxCombo;
             Accuracy = score.CalculateAccuracy();
@@ -54,7 +54,7 @@ namespace OsuServer.Objects
                     continue;
                 }
 
-                submittedScores[i] = new SubmittedScore(await dbScore.GetScore(database, bancho), (int)dbScore.Id.Value);
+                submittedScores[i] = new SubmittedScore(await dbScore.GetScore(database, bancho), (int)dbScore.Id.Value, dbScore.PP.Value);
             }
 
             return new ScoreStats(submittedScores);
@@ -74,13 +74,13 @@ namespace OsuServer.Objects
             }
         }
 
-        private void SetBestValues(Score? score)
+        private void SetBestValues(SubmittedScore? score)
         {
             if (score == null) return;
 
-            if (PerformancePoints < score.Beatmap.CalculatePerformancePoints(score))
+            if (PerformancePoints < score.PerformancePoints)
             {
-                PerformancePoints = score.Beatmap.CalculatePerformancePoints(score);
+                PerformancePoints = score.PerformancePoints;
             }
 
             if (TotalScore < score.TotalScore)

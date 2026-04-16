@@ -13,7 +13,7 @@ namespace OsuServer.External.Database.Tables
         ranked_score BIGINT NOT NULL DEFAULT 0,
         accuracy DOUBLE NOT NULL DEFAULT 0,
         playcount INT NOT NULL DEFAULT 0,
-        rank INT NOT NULL DEFAULT 0,
+        `rank` INT NOT NULL DEFAULT 0,
         pp DOUBLE NOT NULL DEFAULT 0,
         max_combo INT NOT NULL DEFAULT 0,
 

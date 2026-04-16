@@ -48,6 +48,14 @@
             }
         }
 
+        public static string StorageBeatmapFilePath
+        {
+            get
+            {
+                return Config.GetSection("storage").TryGetValue<string>("beatmapFilePath");
+            }
+        }
+
         public static string Domain
         {
             get
@@ -83,6 +91,13 @@
             get
             {
                 return Config.GetSection("beatmapMirrorApi").TryGetValue<string>("searchEndpoint");
+            }
+        }
+        public static string BeatmapMirrorOsuFileDownloadEndpoint
+        {
+            get
+            {
+                return Config.GetSection("beatmapMirrorApi").TryGetValue<string>("osuFileEndpoint");
             }
         }
 
