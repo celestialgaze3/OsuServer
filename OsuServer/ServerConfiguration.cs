@@ -64,6 +64,14 @@
             }
         }
 
+        public static string MessageOfTheDay
+        {
+            get
+            {
+                return Config.TryGetValue<string>("motd");
+            }
+        }
+
         public static string ClientSecret { 
             get
             {

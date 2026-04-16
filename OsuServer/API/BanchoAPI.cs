@@ -261,7 +261,7 @@ namespace OsuServer.API
 
         public async Task<IResult> HandleWeb(HttpContext context)
         {
-            return Results.Ok($"{Bancho.Name} is up and running!");
+            return Results.Ok($"{Bancho.Name} is up and running! {ServerConfiguration.MessageOfTheDay}");
         }
 
         public async Task<IResult> HandleBanchoConnect(HttpContext context)
