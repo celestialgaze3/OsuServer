@@ -20,4 +20,4 @@ An osu!stable server implementation written in C#. This is my first (significant
 - Web frontend
 
 ### Connect to the server
-You can connect to this server by adding `-devserver celestialgaze.net/osu/server` to the end of the path of your osu! shortcut and running from there.
+You can connect to this server by adding `-devserver osu.celestialgaze.net` to the end of the path of your osu! shortcut and running from there.
