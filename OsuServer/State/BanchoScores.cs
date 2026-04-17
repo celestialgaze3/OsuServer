@@ -30,6 +30,7 @@ namespace OsuServer.State
         public async Task<(SubmittedScore, DbScore?, DbScore?[])> Submit(OsuServerDb database, OnlinePlayer player, 
             Score score, string checksum, byte[]? replayBytes)
         {
+            // Duplicate score submission
             if (IsSubmitted(checksum))
             {
                 SubmittedScore foundScore = _idToScore[_checksumToId[checksum]];
@@ -38,9 +39,17 @@ namespace OsuServer.State
 
             // Send the score to be saved in the database
             await database.StartTransaction();
-            (DbScore, DbScore?[]) ScoreInfo = await DbScore.PrepareInsertion(database, score, checksum, replayBytes);
-            DbScore dbScore = ScoreInfo.Item1;
+            (DbScore?, DbScore?[]) ScoreInfo = await DbScore.PrepareInsertion(database, score, checksum, replayBytes);
+            DbScore? dbScore = ScoreInfo.Item1;
             DbScore?[] previousBests = ScoreInfo.Item2;
+
+            // If null was returned, then the database already had this score
+            if (dbScore == null) {
+                DbScore? alreadySubmitted = previousBests[0]!;
+                SubmittedScore alreadySubmittedScore = new(score, (int) alreadySubmitted.Id.Value, alreadySubmitted.PP.Value);
+                return (alreadySubmittedScore, null, []);
+            }
+
 
             DbScore? previousBestScore = previousBests[3];
 

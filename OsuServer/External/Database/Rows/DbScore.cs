@@ -102,11 +102,19 @@ namespace OsuServer.External.Database.Rows
         /// <param name="database">The database instance</param>
         /// <param name="score">The Score to insert</param>
         /// <returns>A tuple of the DbScore to insert, with an array of all previous best scores in order of
-        /// best pp, accuracy, combo, score, then modded score</returns>
-        public static async Task<(DbScore, DbScore?[])> PrepareInsertion(OsuServerDb database, Score score, string checksum, byte[]? replayBytes)
+        /// best pp, accuracy, combo, score, then modded score. In the case of a duplicate submission, this
+        /// returns null for the left value, and the existing DbScore instance as the first element in the array</returns>
+        public static async Task<(DbScore?, DbScore?[])> PrepareInsertion(OsuServerDb database, Score score, string checksum, byte[]? replayBytes)
         {
             /* We want to find out if this play has bested previous plays in various stats. 
              * Let's make some queries to find out. */
+
+            // We should ignore duplicate submissions
+            DbScore? existingDbScore = await GetScoreFromChecksumAsync(database, checksum);
+            if (existingDbScore != null)
+            {
+                return new(null, [existingDbScore]);
+            }
 
             // First, we need to calculate this play's pp
             double pp = await score.Beatmap.CalculatePerformancePoints(score);
@@ -213,6 +221,19 @@ namespace OsuServer.External.Database.Rows
             );
         }
 
+        public static async Task<DbScore?> GetScoreFromChecksumAsync(OsuServerDb database, string checksum)
+        {
+            return await database.Score.FetchOneAsync(
+                new DbClause(
+                    "WHERE",
+                    "checksum = @checksum",
+                    new()
+                    {
+                        ["checksum"] = checksum
+                    }
+                )
+            );
+        }
 
         public static async Task<List<DbScore>> GetTopScoresAsync(OsuServerDb database, int beatmapId,
             GameMode gameMode)

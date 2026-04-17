@@ -13,7 +13,7 @@ namespace OsuServer.External.Database
         public DbBeatmapTable Beatmap { get; set; }
         public DbFriendTable Friend { get; set; }
 
-        public OsuServerDb(MySqlConnection connection) : base(connection)
+        public OsuServerDb(MySqlConnection connection, string rawConnectionString) : base(connection, rawConnectionString)
         {
             Account = new(this);
             ProfileStats = new(this);
@@ -29,14 +29,15 @@ namespace OsuServer.External.Database
 
         public static async Task<OsuServerDb> GetNewConnection()
         {
-            var connection = new MySqlConnection($"Server={ServerConfiguration.DatabaseServerIP};" +
-                                                 $"User ID={ServerConfiguration.DatabaseUsername};" +
-                                                 $"Password={ServerConfiguration.DatabasePassword};" +
-                                                 $"Database={ServerConfiguration.DatabaseName};" +
-                                                 $"Allow User Variables=True");
+            string rawConnectionString = $"Server={ServerConfiguration.DatabaseServerIP};" +
+                                         $"User ID={ServerConfiguration.DatabaseUsername};" +
+                                         $"Password={ServerConfiguration.DatabasePassword};" +
+                                         $"Database={ServerConfiguration.DatabaseName};" +
+                                         $"Allow User Variables=True";
+            var connection = new MySqlConnection(rawConnectionString);
             await connection.OpenAsync();
 
-            OsuServerDb database = new(connection);
+            OsuServerDb database = new(connection, rawConnectionString);
             if (!_tablesInitialized)
             {
                 Console.WriteLine("Initializing tables...");

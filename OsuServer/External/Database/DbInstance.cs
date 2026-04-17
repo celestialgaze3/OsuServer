@@ -5,6 +5,7 @@ namespace OsuServer.External.Database
 {
     public abstract class DbInstance : IDisposable
     {
+        protected string _rawConnectionString = "";
         public MySqlTransaction? Transaction;
         public MySqlConnection MySqlConnection { get; set; }
 
@@ -13,9 +14,10 @@ namespace OsuServer.External.Database
         /// </summary>
         public bool IsDirty { get; set; } = false;
 
-        public DbInstance(MySqlConnection connection) 
+        public DbInstance(MySqlConnection connection, string rawConnectionString) 
         {
             MySqlConnection = connection;
+            _rawConnectionString = rawConnectionString;
         }
 
         public async Task EnsureConnectionOpen()
@@ -41,11 +43,10 @@ namespace OsuServer.External.Database
         {
             if (MySqlConnection.State == System.Data.ConnectionState.Open)
             {
-                string connectionString = MySqlConnection.ConnectionString;
                 await MySqlConnection.CloseAsync();
                 await MySqlConnection.DisposeAsync();
                
-                MySqlConnection = new MySqlConnection(connectionString);
+                MySqlConnection = new MySqlConnection(_rawConnectionString);
                 await MySqlConnection.OpenAsync();
                 IsDirty = false;
             }
