@@ -501,6 +501,15 @@ namespace OsuServer.API
                 ["password"] = new()
             };
 
+            // Check to make sure client registrations are enabled
+            if (!ServerConfiguration.AllowClientRegistrations)
+            {
+                string message = $"Client registrations are disabled. Please sign up at {ServerConfiguration.RegistrationLink}";
+                errors["username"].Add(message);
+                errors["user_email"].Add(message);
+                errors["password"].Add(message);
+            }
+
             // Trim leading and trailing whitespace (to avoid confusion)
             username = username.Trim();
 

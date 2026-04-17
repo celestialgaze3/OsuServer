@@ -72,6 +72,23 @@
             }
         }
 
+        public static bool AllowClientRegistrations
+        {
+            get
+            {
+                return Config.TryGetValue<bool>("allowClientRegistrations");
+            }
+        }
+
+        public static string RegistrationLink
+        {
+            get
+            {
+                return Config.TryGetValue<string>("registrationLink");
+            }
+        }
+
+
         public static string ClientSecret { 
             get
             {
