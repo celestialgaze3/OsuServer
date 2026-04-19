@@ -19,7 +19,7 @@
         public string UninstallMD5 { get; private set; }
         public string DiskSignatureMD5 { get; private set; }
 
-        public LoginData(string requestBody)
+        private LoginData(string requestBody)
         {
             /* Format is:
             Username\nPassword\nVersion|UtcOffset|DisplayCity|OsuPathMD5:Adapters:AdaptersMD5:UninstallMD5:DiskSignatureMD5|PmPrivate */
@@ -42,6 +42,18 @@
             AdaptersMD5 = hashesArgs[2];
             UninstallMD5 = hashesArgs[3];
             DiskSignatureMD5 = hashesArgs[4];
+        }
+
+        public static LoginData? Parse(string requestBody)
+        {
+            try
+            {
+                LoginData loginData = new(requestBody);
+                return loginData;
+            } catch
+            {
+                return null;
+            }
         }
 
         public void PrintData()

@@ -160,7 +160,13 @@ namespace OsuServer.API
                 body = await reader.ReadToEndAsync();
             }
 
-            LoginData loginData = new LoginData(body);
+            LoginData? loginData = LoginData.Parse(body);
+            if (loginData == null)
+            {
+                Console.WriteLine($"Invalid login attempt with body: {body}");
+                return Results.BadRequest();
+            }
+
             loginData.PrintData();
 
             /*
