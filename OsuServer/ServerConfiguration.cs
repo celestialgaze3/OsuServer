@@ -125,6 +125,30 @@
                 return Config.GetSection("beatmapMirrorApi").TryGetValue<string>("osuFileEndpoint");
             }
         }
+        public static string HostListenIp
+        {
+            get
+            {
+                return Config.GetSection("host").TryGetValue<string>("listenIp");
+            }
+        }
+        public static int HostPortHttps
+        {
+            get
+            {
+                return Config.GetSection("host").TryGetValue<int>("portHttps");
+            }
+        }
+
+        public static int HostPortHttp
+        {
+            get
+            {
+                return Config.GetSection("host").TryGetValue<int>("portHttp");
+            }
+        }
+
+
 
         private static T TryGetValue<T>(this IConfiguration config, string name)
         {

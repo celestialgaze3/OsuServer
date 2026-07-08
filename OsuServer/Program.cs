@@ -27,6 +27,10 @@ namespace OsuServer
             BanchoAPI banchoEndpoint = new(bancho);
 
             var builder = WebApplication.CreateBuilder(args);
+            builder.WebHost.UseUrls(
+                $"https://{ServerConfiguration.HostListenIp}:{ServerConfiguration.HostPortHttps}",
+                $"http://{ServerConfiguration.HostListenIp}:{ServerConfiguration.HostPortHttp}"
+            );
             var app = builder.Build();
 
             // Bancho connections
